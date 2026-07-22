@@ -171,7 +171,7 @@ export const api = {
       school?: string;
       role: UserRole;
     }) =>
-      apiRequest<AuthResponse>("/auth/register", {
+      apiRequest<{ success: boolean; message?: string }>("/auth/register", {
         method: "POST",
         auth: false,
         body: {
@@ -187,6 +187,17 @@ export const api = {
     logout: () => apiRequest<{ success: boolean }>("/auth/logout", { method: "POST" }),
     googleStub: () =>
       apiRequest<AuthResponse>("/auth/google", { method: "POST", auth: false }),
+    verifyEmail: (token: string) =>
+      apiRequest<{ success: boolean; message?: string; token?: string; user?: AuthUser }>(
+        `/auth/verify-email?token=${encodeURIComponent(token)}`,
+        { method: "GET", auth: false }
+      ),
+    resendVerification: (email: string) =>
+      apiRequest<{ success: boolean; message?: string }>("/auth/resend-verification", {
+        method: "POST",
+        auth: false,
+        body: { email },
+      }),
   },
 
   classes: {

@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import { LandingPage } from "./pages/auth/LandingPage";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { SignUpPage } from "./pages/auth/SignUpPage";
+import { VerifyEmailPage } from "./pages/auth/VerifyEmailPage";
 import { HowItWorks } from "./pages/auth/HowItWorks";
 import { TeacherOnboarding } from "./pages/auth/TeacherOnboarding";
 import { StudentOnboarding } from "./pages/auth/StudentOnboarding";
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
   { path: "/how-it-works", Component: HowItWorks },
   { path: "/login", Component: LoginPage },
   { path: "/signup", Component: SignUpPage },
+  { path: "/verify-email", Component: VerifyEmailPage },
   { path: "/onboarding/teacher", Component: protect(TeacherOnboarding, "teacher") },
   { path: "/onboarding/student", Component: protect(StudentOnboarding, "student") },
   { path: "/teacher", Component: protect(TeacherDashboard, "teacher") },

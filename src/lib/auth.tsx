@@ -30,7 +30,7 @@ interface AuthContextValue {
     password: string;
     institution: string;
     role: UserRole;
-  }) => Promise<AuthUser>;
+  }) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<AuthUser | null>;
   setSession: (token: string, user: AuthUser) => void;
@@ -117,10 +117,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: UserRole;
     }) => {
       const res = await api.auth.register(payload);
-      setSession(res.token, res.user);
-      return res.user;
+      // Registration no longer returns token/user - user must verify email first
+      return res;
     },
-    [setSession]
+    []
   );
 
   const logout = useCallback(async () => {

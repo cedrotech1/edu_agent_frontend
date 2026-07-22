@@ -40,17 +40,15 @@ export function SignUpPage() {
     setSubmitting(true);
     setFormError("");
     try {
-      const user = await register({
+      await register({
         name: name.trim(),
         email: email.trim(),
         password,
         institution: institution.trim(),
         role,
       });
-      toast.success("Account created!");
-      if (role === "teacher") navigate("/onboarding/teacher");
-      else if (role === "student") navigate("/onboarding/student");
-      else navigate(roleHome(user.role));
+      toast.success("Registration successful! Please check your email to verify your account.");
+      navigate("/verify-email");
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : "Sign up failed. Please try again.";

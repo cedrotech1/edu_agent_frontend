@@ -16,26 +16,6 @@ interface Notification {
   read: boolean;
 }
 
-const notificationsByRole: Record<Role, Notification[]> = {
-  teacher: [
-    { id: 1, icon: "flag", message: "Quiz 'S3 Biology Quiz 1' has 3 flagged answers needing review", time: "2 min ago", link: "/teacher/results/1/flagged", read: false },
-    { id: 2, icon: "users", message: "15 students have submitted 'Algebra Fundamentals'", time: "1 hour ago", link: "/teacher/results/1", read: false },
-    { id: 3, icon: "clock", message: "Deadline for 'Geometry Quiz' is in 2 hours", time: "2 hours ago", link: "/teacher", read: true },
-    { id: 4, icon: "book", message: "AI grading completed for 'Physics Chapter 3'", time: "Yesterday", link: "/teacher/results/2", read: true },
-  ],
-  student: [
-    { id: 1, icon: "clock", message: "Quiz 'Chemistry Test' closes in 2 hours — don't miss it!", time: "2 hours ago", link: "/student/quiz/1", read: false },
-    { id: 2, icon: "book", message: "Your results for 'Math Quiz' are ready — View Results", time: "3 hours ago", link: "/student/results/1", read: false },
-    { id: 3, icon: "flag", message: "Reminder: 'Biology Basics' is due tomorrow", time: "Yesterday", link: "/student", read: true },
-  ],
-  admin: [
-    { id: 1, icon: "user-plus", message: "New teacher registered: Dr. Mukama from INES Ruhengeri", time: "5 min ago", link: "/admin/users", read: false },
-    { id: 2, icon: "flag", message: "Quiz 'Physics Chapter 3' flagged for suspicious activity", time: "1 hour ago", link: "/admin/quiz-oversight", read: false },
-    { id: 3, icon: "users", message: "3 new students joined this week", time: "2 hours ago", link: "/admin/users", read: true },
-    { id: 4, icon: "flag", message: "5 AI grading overrides logged today", time: "Yesterday", link: "/admin/grading-logs", read: true },
-  ],
-};
-
 const iconMap = {
   flag: Flag,
   users: Bell,
@@ -77,7 +57,8 @@ function relativeTime(iso?: string) {
 export function NotificationsPanel({ role }: Props) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(notificationsByRole[role]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +66,6 @@ export function NotificationsPanel({ role }: Props) {
       try {
         const res = await api.notifications.list();
         const rows = (res.data as any[]) || [];
-        if (!Array.isArray(rows) || !rows.length) return;
         if (cancelled) return;
         setNotifications(
           rows.map((n: any) => ({
@@ -97,8 +77,12 @@ export function NotificationsPanel({ role }: Props) {
             read: Boolean(n.isRead ?? n.read),
           }))
         );
-      } catch {
-        // keep role mocks as fallback when API unavailable
+      } catch (err) {
+        console.error('Failed to load notifications:', err);
+        if (cancelled) return;
+        setNotifications([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
@@ -160,7 +144,12 @@ export function NotificationsPanel({ role }: Props) {
 
             {/* List */}
             <div className="max-h-[420px] overflow-y-auto">
-              {notifications.length === 0 ? (
+              {loading ? (
+                <div className="p-10 text-center">
+                  <Bell className="w-10 h-10 text-gray-300 mx-auto mb-3 animate-pulse" />
+                  <p className="text-gray-500 text-sm">Loading notifications...</p>
+                </div>
+              ) : notifications.length === 0 ? (
                 <div className="p-10 text-center">
                   <Bell className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 text-sm">No notifications yet</p>

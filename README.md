@@ -104,11 +104,11 @@ Vite proxies `/api` → `http://127.0.0.1:9000` (optional). The app normally use
 
 Use seeded backend users (password **`Password123`**):
 
-| Email | Goes to |
-|-------|---------|
-| `teacher@quizmind.rw` | `/teacher` |
-| `student@quizmind.rw` | `/student` |
-| `admin@quizmind.rw` | `/admin` |
+| Email | Role | Goes to |
+|-------|------|---------|
+| `cedrickhakuzimana@gmail.com` | Teacher | `/teacher` |
+| `grace@gmail.com` | Student | `/student` |
+| `admin@gmail.com` | Admin | `/admin` |
 
 ---
 

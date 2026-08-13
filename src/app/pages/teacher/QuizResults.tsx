@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
 import { ArrowLeft, Sparkles, CheckCircle, XCircle, AlertCircle, Download } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 import { api, ApiError, initials } from "@/lib/api";
+import { AppShell } from "../../components/AppShell";
 
 export function QuizResults() {
   const navigate = useNavigate();
@@ -90,43 +90,43 @@ export function QuizResults() {
     });
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#F9F9FF] text-gray-600">Loading results…</div>;
+  if (loading) {
+    return (
+      <AppShell role="teacher" pageTitle="Quiz Results">
+        <div className="flex items-center justify-center text-gray-600 py-16">Loading results…</div>
+      </AppShell>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#F9F9FF]">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/teacher")}
-                className="rounded-xl"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                Back
-              </Button>
-              <div className="flex items-center gap-3">
-                <Sparkles className="w-8 h-8 text-[#6C63FF]" />
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-800">Quiz Results</h1>
-                  <p className="text-sm text-gray-600">{quizMeta.title}{quizMeta.className ? ` - ${quizMeta.className}` : ""}</p>
-                </div>
-              </div>
+    <AppShell role="teacher" pageTitle="Quiz Results">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/teacher")}
+            className="rounded-xl"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back
+          </Button>
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-8 h-8 text-[#6C63FF]" />
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Quiz Results</h2>
+              <p className="text-sm text-gray-600">{quizMeta.title}{quizMeta.className ? ` - ${quizMeta.className}` : ""}</p>
             </div>
-            <Button
-              onClick={handleExportResults}
-              className="bg-[#43E6B5] hover:bg-[#2DD49E] text-white rounded-xl px-6 flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export Results
-            </Button>
           </div>
         </div>
+        <Button
+          onClick={handleExportResults}
+          className="bg-[#43E6B5] hover:bg-[#2DD49E] text-white rounded-xl px-6 flex items-center gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Export Results
+        </Button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-white rounded-2xl p-6 shadow-md">
@@ -265,7 +265,6 @@ export function QuizResults() {
             </Card>
           </div>
         </div>
-      </div>
-    </div>
+    </AppShell>
   );
 }

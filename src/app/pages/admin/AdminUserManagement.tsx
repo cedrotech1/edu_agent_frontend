@@ -13,6 +13,7 @@ import {
   School, CheckCircle, Ban, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
+import { AppShell } from "../../components/AppShell";
 import { api, ApiError, initials } from "@/lib/api";
 
 type UserStatus = "active" | "suspended";
@@ -20,15 +21,6 @@ interface User {
   id: number; name: string; initials: string; email: string;
   role: string; school: string; status: UserStatus; quizzes: number;
 }
-
-const initialUsers: User[] = [
-  { id: 1, name: "Ms. Johnson", initials: "MJ", email: "johnson@school.edu", role: "teacher", school: "Kigali Primary", status: "active", quizzes: 12 },
-  { id: 2, name: "Alex Martinez", initials: "AM", email: "alex@school.edu", role: "student", school: "Kigali Primary", status: "active", quizzes: 24 },
-  { id: 3, name: "Mr. Smith", initials: "MS", email: "smith@school.edu", role: "teacher", school: "Nyamata S.S.", status: "active", quizzes: 8 },
-  { id: 4, name: "Sarah Connor", initials: "SC", email: "sarah@school.edu", role: "student", school: "Nyamata S.S.", status: "suspended", quizzes: 15 },
-  { id: 5, name: "Grace Lee", initials: "GL", email: "grace@school.edu", role: "student", school: "Kigali Primary", status: "active", quizzes: 19 },
-  { id: 6, name: "Dr. Mukama", initials: "DM", email: "mukama@school.edu", role: "teacher", school: "INES Ruhengeri", status: "active", quizzes: 21 },
-];
 
 export function AdminUserManagement() {
   const navigate = useNavigate();
@@ -118,29 +110,24 @@ export function AdminUserManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F9FF]">
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate("/admin")} className="rounded-xl">
-                <ArrowLeft className="w-5 h-5 mr-2" /> Admin Dashboard
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
-                <p className="text-sm text-gray-500">{loading ? "Loading…" : `${users.length} total users`}</p>
-              </div>
-            </div>
-            <Button onClick={() => setShowAddModal(true)} className="bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl gap-2">
-              <UserPlus className="w-4 h-4" /> Add User
-            </Button>
+    <AppShell role="admin" pageTitle="User Management">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate("/admin")} className="rounded-xl">
+            <ArrowLeft className="w-5 h-5 mr-2" /> Admin Dashboard
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
+            <p className="text-sm text-gray-500">{loading ? "Loading…" : `${users.length} total users`}</p>
           </div>
         </div>
+        <Button onClick={() => setShowAddModal(true)} className="bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl gap-2">
+          <UserPlus className="w-4 h-4" /> Add User
+        </Button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters */}
-        <div className="flex gap-4 mb-6">
+      {/* Filters */}
+      <div className="flex gap-4 mb-6">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)}
@@ -157,75 +144,74 @@ export function AdminUserManagement() {
               <SelectItem value="student">Students</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-
-        <Card className="bg-white rounded-2xl shadow-md overflow-hidden">
-          {filtered.length === 0 ? (
-            <div className="p-12 text-center">
-              <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="font-semibold text-gray-800 mb-2">No users found</h3>
-              <p className="text-gray-500">Try adjusting your search or filter</p>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Name</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Email</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Role</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">School</th>
-                  <th className="text-center px-6 py-4 text-sm font-semibold text-gray-600">Status</th>
-                  <th className="text-center px-6 py-4 text-sm font-semibold text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((u) => (
-                  <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                          u.role === "teacher" ? "bg-[#6C63FF]" : "bg-[#4FC3F7]"
-                        }`}>{u.initials}</div>
-                        <span className="font-medium text-gray-800">{u.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 text-sm">{u.email}</td>
-                    <td className="px-6 py-4">
-                      <Badge className={`rounded-full capitalize ${
-                        u.role === "teacher" ? "bg-[#6C63FF]/10 text-[#6C63FF]" : "bg-[#4FC3F7]/10 text-[#4FC3F7]"
-                      }`}>{u.role}</Badge>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 text-sm">{u.school}</td>
-                    <td className="px-6 py-4 text-center">
-                      <Badge className={`rounded-full ${
-                        u.status === "active" ? "bg-[#43E6B5]/10 text-[#43E6B5]" : "bg-red-100 text-red-600"
-                      }`}>
-                        {u.status === "active" ? "✓ Active" : "✕ Suspended"}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => setProfileUser(u)}
-                          className="p-2 text-[#6C63FF] hover:bg-[#6C63FF]/10 rounded-lg transition-colors" title="View Profile">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => toggleStatus(u.id)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            u.status === "active"
-                              ? "text-red-500 hover:bg-red-50"
-                              : "text-[#43E6B5] hover:bg-[#43E6B5]/10"
-                          }`} title={u.status === "active" ? "Suspend" : "Activate"}>
-                          {u.status === "active" ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </Card>
       </div>
+
+      <Card className="bg-white rounded-2xl shadow-md overflow-hidden">
+        {filtered.length === 0 ? (
+          <div className="p-12 text-center">
+            <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="font-semibold text-gray-800 mb-2">No users found</h3>
+            <p className="text-gray-500">Try adjusting your search or filter</p>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Name</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Email</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Role</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">School</th>
+                <th className="text-center px-6 py-4 text-sm font-semibold text-gray-600">Status</th>
+                <th className="text-center px-6 py-4 text-sm font-semibold text-gray-600">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((u) => (
+                <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${
+                        u.role === "teacher" ? "bg-[#6C63FF]" : "bg-[#4FC3F7]"
+                      }`}>{u.initials}</div>
+                      <span className="font-medium text-gray-800">{u.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600 text-sm">{u.email}</td>
+                  <td className="px-6 py-4">
+                    <Badge className={`rounded-full capitalize ${
+                      u.role === "teacher" ? "bg-[#6C63FF]/10 text-[#6C63FF]" : "bg-[#4FC3F7]/10 text-[#4FC3F7]"
+                    }`}>{u.role}</Badge>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600 text-sm">{u.school}</td>
+                  <td className="px-6 py-4 text-center">
+                    <Badge className={`rounded-full ${
+                      u.status === "active" ? "bg-[#43E6B5]/10 text-[#43E6B5]" : "bg-red-100 text-red-600"
+                    }`}>
+                      {u.status === "active" ? "✓ Active" : "✕ Suspended"}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <button onClick={() => setProfileUser(u)}
+                        className="p-2 text-[#6C63FF] hover:bg-[#6C63FF]/10 rounded-lg transition-colors" title="View Profile">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => toggleStatus(u.id)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          u.status === "active"
+                            ? "text-red-500 hover:bg-red-50"
+                            : "text-[#43E6B5] hover:bg-[#43E6B5]/10"
+                        }`} title={u.status === "active" ? "Suspend" : "Activate"}>
+                        {u.status === "active" ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
 
       {/* Profile Side Panel */}
       {profileUser && (
@@ -333,6 +319,6 @@ export function AdminUserManagement() {
           </Card>
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }

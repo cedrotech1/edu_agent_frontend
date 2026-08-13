@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { AppShell } from "../../components/AppShell";
 
 const educationLevels: Record<string, { name: string; subLevels: string[] }> = {
   nursery: { name: "Nursery", subLevels: ["Baby Class", "Middle Class", "Top Class"] },
@@ -434,22 +435,18 @@ export function QuizBuilder() {
 
   if (step === "generate") {
     return (
-      <div className="min-h-screen bg-[#F9F9FF]">
-        <div className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate("/teacher")} className="rounded-xl">
-                <ArrowLeft className="w-5 h-5 mr-2" /> Back
-              </Button>
-              <div className="flex items-center gap-3">
-                <Sparkles className="w-8 h-8 text-[#6C63FF]" />
-                <h1 className="text-2xl font-bold text-gray-800">AI Quiz Generator</h1>
-              </div>
-            </div>
+      <AppShell role="teacher" pageTitle="Generate Quiz">
+        <div className="flex items-center gap-4 mb-6">
+          <Button variant="ghost" onClick={() => navigate("/teacher")} className="rounded-xl">
+            <ArrowLeft className="w-5 h-5 mr-2" /> Back
+          </Button>
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-8 h-8 text-[#6C63FF]" />
+            <h2 className="text-2xl font-bold text-gray-800">AI Quiz Generator</h2>
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-4xl mx-auto">
           <Card className="bg-white rounded-3xl p-8 shadow-lg">
             <div className="mb-6">
               <h2 className="text-2xl font-semibold text-gray-800 mb-2">Generate Quiz with AI ✨</h2>
@@ -530,30 +527,26 @@ export function QuizBuilder() {
             </div>
           </Card>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F9FF]">
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => setStep("generate")} className="rounded-xl">
-                <ArrowLeft className="w-5 h-5 mr-2" /> Back
-              </Button>
-              <div className="flex items-center gap-3">
-                <Sparkles className="w-8 h-8 text-[#6C63FF]" />
-                <h1 className="text-2xl font-bold text-gray-800">Review & Edit Quiz</h1>
-              </div>
-            </div>
-            <Button onClick={handlePublish} disabled={publishing}
-              className="bg-[#43E6B5] hover:bg-[#2DD49E] text-white px-6 py-3 rounded-xl font-semibold">
-              {publishing ? "Publishing…" : "Publish Quiz 🚀"}
-            </Button>
+    <AppShell role="teacher" pageTitle="Generate Quiz">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => setStep("generate")} className="rounded-xl">
+            <ArrowLeft className="w-5 h-5 mr-2" /> Back
+          </Button>
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-8 h-8 text-[#6C63FF]" />
+            <h2 className="text-2xl font-bold text-gray-800">Review & Edit Quiz</h2>
           </div>
         </div>
+        <Button onClick={handlePublish} disabled={publishing}
+          className="bg-[#43E6B5] hover:bg-[#2DD49E] text-white px-6 py-3 rounded-xl font-semibold">
+          {publishing ? "Publishing…" : "Publish Quiz 🚀"}
+        </Button>
       </div>
 
       {/* Add Question Modal */}
@@ -599,7 +592,6 @@ export function QuizBuilder() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Questions List */}
           <div className="lg:col-span-2 space-y-4">
@@ -757,7 +749,6 @@ export function QuizBuilder() {
             </Card>
           </div>
         </div>
-      </div>
-    </div>
+    </AppShell>
   );
 }

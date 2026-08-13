@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, initials, ApiError } from "@/lib/api";
+import { AppShell } from "../../components/AppShell";
 
 interface Student {
   id: number;
@@ -116,20 +117,24 @@ export function ClassDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9F9FF] flex items-center justify-center text-gray-600">
-        Loading class…
-      </div>
+      <AppShell role="teacher" pageTitle="Class Detail">
+        <div className="flex items-center justify-center text-gray-600 py-16">
+          Loading class…
+        </div>
+      </AppShell>
     );
   }
 
   if (!cls) {
     return (
-      <div className="min-h-screen bg-[#F9F9FF] flex items-center justify-center">
-        <Card className="p-8 rounded-2xl text-center">
-          <p className="text-gray-600 mb-4">Class not found</p>
-          <Button onClick={() => navigate("/teacher")}>Back to Dashboard</Button>
-        </Card>
-      </div>
+      <AppShell role="teacher" pageTitle="Class Detail">
+        <div className="flex items-center justify-center py-16">
+          <Card className="p-8 rounded-2xl text-center">
+            <p className="text-gray-600 mb-4">Class not found</p>
+            <Button onClick={() => navigate("/teacher")}>Back to Dashboard</Button>
+          </Card>
+        </div>
+      </AppShell>
     );
   }
 
@@ -142,40 +147,35 @@ export function ClassDetail() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-[#F9F9FF]">
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate("/teacher")} className="rounded-xl">
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                Dashboard
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">{cls.name}</h1>
-                <p className="text-sm text-gray-500">{cls.subject} · {cls.level}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-[#6C63FF]/5 border-2 border-[#6C63FF]/20 rounded-xl px-4 py-2">
-                <span className="font-mono font-bold text-[#6C63FF] text-sm">{cls.code}</span>
-                <button onClick={copyCode} className="text-[#6C63FF] hover:text-[#5851E6]">
-                  <Copy className="w-4 h-4" />
-                </button>
-              </div>
-              <Button
-                onClick={() => setShowAddModal(true)}
-                className="bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl gap-2"
-              >
-                <UserPlus className="w-4 h-4" />
-                Add Students
-              </Button>
-            </div>
+    <AppShell role="teacher" pageTitle="Class Detail">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate("/teacher")} className="rounded-xl">
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Dashboard
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">{cls.name}</h2>
+            <p className="text-sm text-gray-500">{cls.subject} · {cls.level}</p>
           </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-[#6C63FF]/5 border-2 border-[#6C63FF]/20 rounded-xl px-4 py-2">
+            <span className="font-mono font-bold text-[#6C63FF] text-sm">{cls.code}</span>
+            <button onClick={copyCode} className="text-[#6C63FF] hover:text-[#5851E6]">
+              <Copy className="w-4 h-4" />
+            </button>
+          </div>
+          <Button
+            onClick={() => setShowAddModal(true)}
+            className="bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl gap-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            Add Students
+          </Button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-3 gap-5 mb-8">
           <Card className="bg-gradient-to-br from-[#6C63FF] to-[#5851E6] text-white rounded-2xl p-5 shadow-lg">
             <Users className="w-8 h-8 text-white/50 mb-2" />
@@ -319,7 +319,6 @@ export function ClassDetail() {
             )}
           </div>
         )}
-      </div>
 
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -378,6 +377,6 @@ export function ClassDetail() {
           </Card>
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }

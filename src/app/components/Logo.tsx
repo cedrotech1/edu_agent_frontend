@@ -6,7 +6,7 @@ interface LogoProps {
   color?: string;
 }
 
-export function Logo({ variant = "horizontal", size = "md", color = "#6C63FF" }: LogoProps) {
+export function Logo({ variant = "horizontal", size = "md", color = "#272757" }: LogoProps) {
   const sizes = {
     sm: { icon: 24, text: "text-lg" },
     md: { icon: 32, text: "text-2xl" },
@@ -27,7 +27,7 @@ export function Logo({ variant = "horizontal", size = "md", color = "#6C63FF" }:
       </div>
       <Sparkles
         className="absolute -top-1 -right-1 w-4 h-4"
-        style={{ color: "#FFD166" }}
+        style={{ color: "#F59E0B" }}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import { Label } from "../../components/ui/label";
 import { Switch } from "../../components/ui/switch";
 import { ArrowLeft, Settings, Sparkles, Bell, CreditCard, Upload, Sliders } from "lucide-react";
 import { toast } from "sonner";
+import { AppShell } from "../../components/AppShell";
 import { api, ApiError } from "@/lib/api";
 
 type Sensitivity = "low" | "medium" | "high";
@@ -65,22 +66,18 @@ export function AdminPlatformSettings() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F9F9FF]">
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate("/admin")} className="rounded-xl">
-              <ArrowLeft className="w-5 h-5 mr-2" /> Admin Dashboard
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Platform Settings</h1>
-              <p className="text-sm text-gray-500">Manage platform-wide configuration</p>
-            </div>
-          </div>
+    <AppShell role="admin" pageTitle="System Settings">
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="ghost" onClick={() => navigate("/admin")} className="rounded-xl">
+          <ArrowLeft className="w-5 h-5 mr-2" /> Admin Dashboard
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Platform Settings</h1>
+          <p className="text-sm text-gray-500">Manage platform-wide configuration</p>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         {loading && <p className="text-gray-500">Loading settings…</p>}
         {/* Platform identity */}
         <Card className="bg-white rounded-2xl p-6 shadow-md">
@@ -218,6 +215,6 @@ export function AdminPlatformSettings() {
           {saving ? "Saving..." : "Save All Settings"}
         </Button>
       </div>
-    </div>
+    </AppShell>
   );
 }

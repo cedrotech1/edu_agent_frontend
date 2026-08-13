@@ -1,5 +1,8 @@
-export const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:9000/api/v1";
+// export const API_BASE =
+// .env
+// @ts-ignore
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:9000/api/v1";
+// const API_BASE = "http://127.0.0.1:9000/api/v1";
 
 const TOKEN_KEY = "quizmind_token";
 const USER_KEY = "quizmind_user";
@@ -315,6 +318,12 @@ export const api = {
       apiRequest<{ success: boolean; message?: string }>("/notifications/read-all", {
         method: "PUT",
       }),
+    delete: (id: string | number) =>
+      apiRequest<DataResponse>(`/notifications/delete/${id}`, { method: "DELETE" }),
+    deleteAll: () =>
+      apiRequest<{ success: boolean; message?: string }>("/notifications/delete-all", {
+        method: "DELETE",
+      }),
   },
 
   admin: {
@@ -350,5 +359,85 @@ export const api = {
         auth: false,
         body: { message },
       }),
+
+    /** Streams landing-chat tokens via SSE. Calls onDelta for each text chunk. */
+    publicStream: async (
+      message: string,
+      onDelta: (text: string) => void,
+    ): Promise<{ reply: string; model?: string }> => {
+      const res = await fetch(
+        `${API_BASE}/chat/public/stream`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "text/event-stream",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message }),
+        },
+      );
+
+      if (!res.ok) {
+        let msg = "AI assistant failed to respond";
+        try {
+          const j = await res.json();
+          msg = j?.message || msg;
+        } catch {
+          /* ignore */
+        }
+        throw new ApiError(msg, res.status);
+      }
+
+      if (!res.body) {
+        throw new ApiError("No stream body from AI assistant", 502);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let reply = "";
+      let model: string | undefined;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+
+        for (const part of parts) {
+          const dataLine = part
+            .split("\n")
+            .find((l) => l.startsWith("data:"));
+          if (!dataLine) continue;
+          const raw = dataLine.slice(5).trim();
+          if (!raw) continue;
+
+          let event: any;
+          try {
+            event = JSON.parse(raw);
+          } catch {
+            continue;
+          }
+
+          if (event.type === "delta" && event.text) {
+            reply += event.text;
+            onDelta(event.text);
+          } else if (event.type === "done") {
+            reply = event.reply || reply;
+            model = event.model;
+          } else if (event.type === "error") {
+            throw new ApiError(event.message || "AI stream error", 502);
+          }
+        }
+      }
+
+      if (!reply.trim()) {
+        throw new ApiError("AI assistant returned an empty response", 502);
+      }
+
+      return { reply, model };
+    },
   },
 };

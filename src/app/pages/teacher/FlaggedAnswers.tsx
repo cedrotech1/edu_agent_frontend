@@ -8,6 +8,7 @@ import { Label } from "../../components/ui/label";
 import { ArrowLeft, Sparkles, CheckCircle, Edit, AlertCircle, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError, initials } from "@/lib/api";
+import { AppShell } from "../../components/AppShell";
 
 type FilterType = "all" | "low-confidence" | "overridden";
 
@@ -101,30 +102,26 @@ export function FlaggedAnswers() {
     c >= 80 ? "bg-[#43E6B5]/10 text-[#43E6B5]" : c >= 65 ? "bg-[#FFD166]/10 text-[#FFD166]" : "bg-red-50 text-red-500";
 
   return (
-    <div className="min-h-screen bg-[#F9F9FF]">
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate(`/teacher/results/${quizId}`)}
-              className="rounded-xl"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back to Results
-            </Button>
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-7 h-7 text-[#FFD166]" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">Flagged Answers</h1>
-                <p className="text-sm text-gray-600">{quizTitle}</p>
-              </div>
-            </div>
+    <AppShell role="teacher" pageTitle="Flagged Answers">
+      {loading && <p className="text-gray-500 mb-4">Loading…</p>}
+      <div className="flex items-center gap-4 mb-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(`/teacher/results/${quizId}`)}
+          className="rounded-xl"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          Back to Results
+        </Button>
+        <div className="flex items-center gap-3">
+          <AlertCircle className="w-7 h-7 text-[#FFD166]" />
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Flagged Answers</h2>
+            <p className="text-sm text-gray-600">{quizTitle}</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Summary */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <Card className="bg-white rounded-2xl p-5 shadow-md text-center">
@@ -225,7 +222,6 @@ export function FlaggedAnswers() {
             </Card>
           ))}
         </div>
-      </div>
 
       {/* Override modal */}
       {overrideTarget !== null && (
@@ -266,6 +262,6 @@ export function FlaggedAnswers() {
           </Card>
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }

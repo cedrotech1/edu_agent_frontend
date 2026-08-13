@@ -1,393 +1,381 @@
-import { useNavigate } from "react-router";
-import { Button } from "../../components/ui/button";
-import { Card } from "../../components/ui/card";
-import { Input } from "../../components/ui/input";
-import { Badge } from "../../components/ui/badge";
-import { Progress } from "../../components/ui/progress";
-import { Logo } from "../../components/Logo";
-import { ArrowLeft, Sparkles, Copy } from "lucide-react";
-import { Avatar, AvatarFallback } from "../../components/ui/avatar";
+import {
+  LayoutDashboard, Users, BookOpen, Bell, Settings, Flag,
+  Search, CheckCircle2, AlertTriangle, Info, XCircle,
+  Home, Sparkles, GraduationCap, ChevronRight, Paintbrush,
+} from "lucide-react";
+
+// Standalone developer reference — no DashboardLayout
+
+const ECLIPSE_COLORS = [
+  { name: "Deep Navy",        hex: "#0F0E47", role: "Headings / Sidebar Background" },
+  { name: "Primary Blue",     hex: "#272757", role: "Primary Button / Active Nav" },
+  { name: "Hover Blue",       hex: "#1A1952", role: "Button Hover / Active Press" },
+  { name: "Mid Blue",         hex: "#505081", role: "Secondary Color / Bar Charts" },
+  { name: "Muted Lavender",   hex: "#8686AC", role: "Muted Labels / Inactive Nav" },
+  { name: "Soft Violet",      hex: "#EDE9FE", role: "Unread Background / Chip Fill" },
+  { name: "Page Background",  hex: "#F8FAFC", role: "App Background / Canvas" },
+  { name: "Surface White",    hex: "#FFFFFF", role: "Cards / Panels" },
+  { name: "Border",           hex: "#E2E8F0", role: "Dividers / Input Borders" },
+  { name: "Subtext",          hex: "#64748B", role: "Secondary Text / Captions" },
+];
+
+const SEMANTIC_COLORS = [
+  { name: "Success", bg: "#D1FAE5", text: "#065F46", label: "Active, Passing, Confirmed" },
+  { name: "Warning", bg: "#FEF3C7", text: "#92400E", label: "Caution, Pending, Flagged" },
+  { name: "Danger",  bg: "#FEE2E2", text: "#991B1B", label: "Error, Delete, Closed" },
+  { name: "Info",    bg: "#DBEAFE", text: "#1E3A8A", label: "Informational, Notice" },
+];
+
+const TYPE_STYLES = [
+  { name: "H1 Display",    sample: "Assessment AI",      font: "Poppins", size: "36px", weight: "800", lh: "1.2" },
+  { name: "H2 Heading",    sample: "Class Dashboard",    font: "Poppins", size: "28px", weight: "700", lh: "1.3" },
+  { name: "H3 Subheading", sample: "Recent Activity",    font: "Poppins", size: "20px", weight: "600", lh: "1.4" },
+  { name: "Body Large",    sample: "Create and deliver quizzes with confidence.", font: "Inter", size: "16px", weight: "400", lh: "1.6" },
+  { name: "Body Default",  sample: "QuizMind AI uses machine learning to grade short answers accurately.", font: "Inter", size: "14px", weight: "400", lh: "1.6" },
+  { name: "Caption",       sample: "Last updated 2 hours ago",  font: "Inter", size: "12px", weight: "400", lh: "1.5" },
+  { name: "Label",         sample: "QUIZ TITLE",               font: "Inter", size: "11px", weight: "600", lh: "1.4" },
+  { name: "Link",          sample: "View all results →",        font: "Inter", size: "14px", weight: "500", lh: "1.6" },
+];
+
+const BADGE_VARIANTS = [
+  { label: "Active",  bg: "#D1FAE5", text: "#065F46" },
+  { label: "Draft",   bg: "#EDE9FE", text: "#272757" },
+  { label: "Closed",  bg: "#F1F5F9", text: "#64748B" },
+  { label: "Warning", bg: "#FEF3C7", text: "#92400E" },
+  { label: "Danger",  bg: "#FEE2E2", text: "#991B1B" },
+  { label: "Info",    bg: "#DBEAFE", text: "#1E3A8A" },
+];
+
+const SPACING = [4, 8, 12, 16, 24, 32, 48];
+
+const ICONS = [
+  { icon: LayoutDashboard, name: "LayoutDashboard" },
+  { icon: Users,           name: "Users" },
+  { icon: BookOpen,        name: "BookOpen" },
+  { icon: Bell,            name: "Bell" },
+  { icon: Settings,        name: "Settings" },
+  { icon: Flag,            name: "Flag" },
+  { icon: Search,          name: "Search" },
+  { icon: CheckCircle2,    name: "CheckCircle2" },
+  { icon: GraduationCap,   name: "GraduationCap" },
+  { icon: Paintbrush,      name: "Paintbrush" },
+];
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-6">
+      <h2 className="text-xl font-bold text-[#0F0E47]">{children}</h2>
+      <div className="mt-2 h-0.5 w-12 bg-[#272757] rounded-full" />
+    </div>
+  );
+}
+
+function Section({ children }: { children: React.ReactNode }) {
+  return <section className="mb-14">{children}</section>;
+}
 
 export function StyleGuide() {
-  const navigate = useNavigate();
-
-  const colors = [
-    { name: "Purple", hex: "#6C63FF", var: "--quiz-purple" },
-    { name: "Sky Blue", hex: "#4FC3F7", var: "--quiz-sky-blue" },
-    { name: "Mint Green", hex: "#43E6B5", var: "--quiz-mint" },
-    { name: "Warm White", hex: "#F9F9FF", var: "--quiz-warm-white" },
-    { name: "Yellow Accent", hex: "#FFD166", var: "--quiz-yellow" },
-  ];
-
   return (
-    <div className="min-h-screen bg-[#F9F9FF]">
+    <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/admin")}
-              className="rounded-xl"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back
-            </Button>
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-8 h-8 text-[#6C63FF]" />
-              <h1 className="text-2xl font-bold text-gray-800">Style Guide</h1>
-            </div>
-          </div>
+      <div className="bg-[#0F0E47] text-white px-12 py-10">
+        <div className="max-w-[1200px] mx-auto">
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-2">QuizMind AI</p>
+          <h1 className="text-4xl font-extrabold mb-1">Design System</h1>
+          <p className="text-white/60 text-sm">Blue Eclipse Palette · v1.0 · Developer Reference — not part of app navigation</p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Logo Variations */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Logo Variations</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-white rounded-2xl p-8 shadow-md">
-              <div className="flex items-center justify-center mb-4 h-24">
-                <Logo variant="horizontal" size="md" />
-              </div>
-              <p className="text-center text-sm text-gray-600 font-semibold">
-                Horizontal Lockup
-              </p>
-              <p className="text-center text-xs text-gray-500 mt-1">
-                Primary logo for headers and navigation
-              </p>
-            </Card>
+      <div className="max-w-[1200px] mx-auto px-12 py-12">
 
-            <Card className="bg-white rounded-2xl p-8 shadow-md">
-              <div className="flex items-center justify-center mb-4 h-24">
-                <Logo variant="icon-only" size="lg" />
-              </div>
-              <p className="text-center text-sm text-gray-600 font-semibold">
-                Icon Only
-              </p>
-              <p className="text-center text-xs text-gray-500 mt-1">
-                For favicons and app icons
-              </p>
-            </Card>
+        {/* ── COLORS ── */}
+        <Section>
+          <SectionHeading>Colors</SectionHeading>
 
-            <Card className="bg-white rounded-2xl p-8 shadow-md">
-              <div className="flex items-center justify-center mb-4 h-24">
-                <Logo variant="stacked" size="sm" />
-              </div>
-              <p className="text-center text-sm text-gray-600 font-semibold">
-                Stacked
-              </p>
-              <p className="text-center text-xs text-gray-500 mt-1">
-                For square spaces and landing pages
-              </p>
-            </Card>
-          </div>
-
-          <Card className="bg-white rounded-2xl p-8 shadow-md mt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Logo in Different Sizes</h3>
-            <div className="flex items-center gap-8 flex-wrap">
-              <div className="text-center">
-                <Logo variant="horizontal" size="sm" />
-                <p className="text-xs text-gray-500 mt-2">Small</p>
-              </div>
-              <div className="text-center">
-                <Logo variant="horizontal" size="md" />
-                <p className="text-xs text-gray-500 mt-2">Medium</p>
-              </div>
-              <div className="text-center">
-                <Logo variant="horizontal" size="lg" />
-                <p className="text-xs text-gray-500 mt-2">Large</p>
-              </div>
-            </div>
-          </Card>
-        </section>
-
-        {/* Color Palette */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Color Palette</h2>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            {colors.map((color) => (
-              <Card key={color.hex} className="bg-white rounded-2xl p-6 shadow-md">
-                <div
-                  className="w-full h-24 rounded-xl mb-4 shadow-inner"
-                  style={{ backgroundColor: color.hex }}
-                ></div>
-                <h3 className="font-semibold text-gray-800 mb-2">{color.name}</h3>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">HEX</span>
-                    <code className="text-sm font-mono text-gray-800">{color.hex}</code>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">CSS</span>
-                    <code className="text-xs font-mono text-gray-800">{color.var}</code>
-                  </div>
+          <p className="text-xs font-bold text-[#475569] uppercase tracking-widest mb-3">Blue Eclipse Palette</p>
+          <div className="grid grid-cols-5 gap-4 mb-8">
+            {ECLIPSE_COLORS.map(c => (
+              <div key={c.hex} className="rounded-xl overflow-hidden border border-[#E2E8F0] shadow-sm">
+                <div className="h-16 border-b border-[#E2E8F0]" style={{ background: c.hex }} />
+                <div className="bg-white p-3">
+                  <p className="text-xs font-bold text-[#0F0E47] mb-0.5">{c.name}</p>
+                  <p className="text-[10px] font-mono text-[#64748B] mb-1">{c.hex}</p>
+                  <p className="text-[10px] text-[#94A3B8] leading-tight">{c.role}</p>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
-        </section>
 
-        {/* Typography */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Typography</h2>
-          <Card className="bg-white rounded-2xl p-8 shadow-md">
-            <div className="space-y-6">
-              <div>
-                <p className="text-sm text-gray-600 mb-2">Font Family: Poppins</p>
-                <h1 className="text-5xl font-bold text-gray-800">Heading 1 - Bold</h1>
+          <p className="text-xs font-bold text-[#475569] uppercase tracking-widest mb-3">Semantic Colors</p>
+          <div className="grid grid-cols-4 gap-4">
+            {SEMANTIC_COLORS.map(s => (
+              <div key={s.name} className="rounded-xl overflow-hidden border border-[#E2E8F0] shadow-sm">
+                <div className="h-12 flex items-center justify-center border-b border-[#E2E8F0]" style={{ background: s.bg }}>
+                  <span className="text-sm font-bold" style={{ color: s.text }}>{s.name}</span>
+                </div>
+                <div className="bg-white p-3">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-[9px] font-mono text-[#64748B]">bg: {s.bg}</span>
+                    <span className="text-[9px] font-mono text-[#64748B]">text: {s.text}</span>
+                  </div>
+                  <p className="text-[10px] text-[#94A3B8]">{s.label}</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-4xl font-semibold text-gray-800">Heading 2 - Semibold</h2>
-              </div>
-              <div>
-                <h3 className="text-3xl font-semibold text-gray-800">Heading 3 - Semibold</h3>
-              </div>
-              <div>
-                <h4 className="text-2xl font-medium text-gray-800">Heading 4 - Medium</h4>
-              </div>
-              <div>
-                <p className="text-lg text-gray-700">
-                  Body Text - Regular (18px): Lorem ipsum dolor sit amet, consectetur
-                  adipiscing elit.
-                </p>
-              </div>
-              <div>
-                <p className="text-base text-gray-600">
-                  Body Text - Regular (16px): Lorem ipsum dolor sit amet, consectetur
-                  adipiscing elit.
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">
-                  Caption - Regular (14px): Lorem ipsum dolor sit amet
-                </p>
-              </div>
-            </div>
-          </Card>
-        </section>
-
-        {/* Buttons */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Buttons</h2>
-          <Card className="bg-white rounded-2xl p-8 shadow-md">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div>
-                <p className="text-sm text-gray-600 mb-3">Primary</p>
-                <Button className="w-full bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-2xl">
-                  Click Me
-                </Button>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-3">Secondary</p>
-                <Button
-                  variant="outline"
-                  className="w-full border-2 border-[#4FC3F7] text-[#4FC3F7] hover:bg-[#4FC3F7]/10 rounded-2xl"
-                >
-                  Click Me
-                </Button>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-3">Success</p>
-                <Button className="w-full bg-[#43E6B5] hover:bg-[#2DD49E] text-white rounded-2xl">
-                  Click Me
-                </Button>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-3">Danger</p>
-                <Button className="w-full bg-red-500 hover:bg-red-600 text-white rounded-2xl">
-                  Click Me
-                </Button>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-3">Disabled</p>
-                <Button disabled className="w-full rounded-2xl">
-                  Disabled
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </section>
-
-        {/* Input Fields */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Input Fields</h2>
-          <Card className="bg-white rounded-2xl p-8 shadow-md">
-            <div className="space-y-6">
-              <div>
-                <p className="text-sm text-gray-600 mb-3">Default</p>
-                <Input
-                  placeholder="Enter text..."
-                  className="rounded-xl border-2 border-gray-200 px-4 py-3"
-                />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-3">Focused</p>
-                <Input
-                  placeholder="Enter text..."
-                  className="rounded-xl border-2 border-[#6C63FF] px-4 py-3"
-                />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-3">Error</p>
-                <Input
-                  placeholder="Enter text..."
-                  className="rounded-xl border-2 border-red-500 px-4 py-3"
-                />
-                <p className="text-sm text-red-500 mt-2">This field is required</p>
-              </div>
-            </div>
-          </Card>
-        </section>
-
-        {/* Badges */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Badges</h2>
-          <Card className="bg-white rounded-2xl p-8 shadow-md">
-            <div className="flex flex-wrap gap-4">
-              <Badge className="bg-[#6C63FF]/10 text-[#6C63FF] rounded-full px-4 py-1">
-                Teacher
-              </Badge>
-              <Badge className="bg-[#4FC3F7]/10 text-[#4FC3F7] rounded-full px-4 py-1">
-                Student
-              </Badge>
-              <Badge className="bg-[#43E6B5]/10 text-[#43E6B5] rounded-full px-4 py-1">
-                Active
-              </Badge>
-              <Badge className="bg-[#FFD166]/10 text-[#FFD166] rounded-full px-4 py-1">
-                Pending
-              </Badge>
-              <Badge className="bg-red-100 text-red-600 rounded-full px-4 py-1">
-                Error
-              </Badge>
-            </div>
-          </Card>
-        </section>
-
-        {/* Cards */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Cards</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="bg-white rounded-2xl p-6 shadow-md">
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                Default Card
-              </h3>
-              <p className="text-gray-600">
-                This is a default card with shadow and rounded corners
-              </p>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-[#6C63FF] to-[#5851E6] text-white rounded-2xl p-6 shadow-lg">
-              <h3 className="text-xl font-semibold mb-2">Gradient Card</h3>
-              <p className="text-white/90">
-                This is a gradient card with bold colors
-              </p>
-            </Card>
+            ))}
           </div>
-        </section>
+        </Section>
 
-        {/* Progress Bars */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Progress Bars</h2>
-          <Card className="bg-white rounded-2xl p-8 shadow-md">
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">75% Complete</span>
+        {/* ── TYPOGRAPHY ── */}
+        <Section>
+          <SectionHeading>Typography</SectionHeading>
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden shadow-sm">
+            {TYPE_STYLES.map((ts, i) => (
+              <div key={ts.name} className={`flex items-start gap-6 px-6 py-5 ${i > 0 ? "border-t border-[#F1F5F9]" : ""}`}>
+                <div className="w-32 flex-shrink-0 pt-1">
+                  <p className="text-[11px] font-bold text-[#272757]">{ts.name}</p>
+                  <p className="text-[10px] text-[#94A3B8] font-mono mt-0.5">
+                    {ts.font} · {ts.size} · {ts.weight === "400" ? "Regular" : ts.weight === "500" ? "Medium" : ts.weight === "600" ? "SemiBold" : ts.weight === "700" ? "Bold" : "ExtraBold"}
+                  </p>
+                  <p className="text-[10px] text-[#94A3B8] font-mono">LH {ts.lh}</p>
                 </div>
-                <Progress value={75} className="h-3 bg-gray-200" />
+                <p
+                  className={`flex-1 ${ts.name === "Link" ? "text-[#272757] underline underline-offset-2" : "text-[#0F0E47]"}`}
+                  style={{ fontFamily: ts.font, fontSize: ts.size, fontWeight: Number(ts.weight), lineHeight: ts.lh }}
+                >
+                  {ts.sample}
+                </p>
               </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">50% Complete</span>
-                </div>
-                <Progress value={50} className="h-3 bg-gray-200" />
+            ))}
+          </div>
+        </Section>
+
+        {/* ── BUTTONS ── */}
+        <Section>
+          <SectionHeading>Buttons</SectionHeading>
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 shadow-sm">
+            <div className="flex flex-wrap items-end gap-6">
+              <div className="flex flex-col items-center gap-2">
+                <button className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[#272757] hover:bg-[#1A1952] transition-colors">Primary</button>
+                <p className="text-[10px] text-[#94A3B8]">Primary Filled</p>
               </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">25% Complete</span>
-                </div>
-                <Progress value={25} className="h-3 bg-gray-200" />
+              <div className="flex flex-col items-center gap-2">
+                <button className="px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-[#272757] text-[#272757] hover:bg-[#EDE9FE] transition-colors">Secondary</button>
+                <p className="text-[10px] text-[#94A3B8]">Secondary Outlined</p>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <button className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[#EF4444] hover:bg-red-600 transition-colors">Danger</button>
+                <p className="text-[10px] text-[#94A3B8]">Danger Red</p>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <button className="px-5 py-2.5 rounded-xl text-sm font-bold text-[#272757] hover:bg-[#EDE9FE] transition-colors">Ghost</button>
+                <p className="text-[10px] text-[#94A3B8]">Ghost Text Only</p>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <button disabled className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed">Disabled</button>
+                <p className="text-[10px] text-[#94A3B8]">Disabled</p>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[#272757] hover:bg-[#1A1952] transition-colors">
+                  <Sparkles className="w-4 h-4" /> With Icon
+                </button>
+                <p className="text-[10px] text-[#94A3B8]">Icon + Label</p>
               </div>
             </div>
-          </Card>
-        </section>
+            <div className="mt-6 pt-6 border-t border-[#F1F5F9] flex flex-wrap gap-6">
+              {[
+                { swatch: "#272757", label: "Default: #272757" },
+                { swatch: "#1A1952", label: "Hover: #1A1952" },
+                { swatch: "#EDE9FE", label: "Ghost Hover: #EDE9FE", border: true },
+                { swatch: "#E2E8F0", label: "Disabled: #E2E8F0" },
+              ].map(s => (
+                <div key={s.label} className="flex items-center gap-2 text-xs text-[#475569]">
+                  <div className="w-4 h-4 rounded" style={{ background: s.swatch, border: s.border ? "1px solid #E2E8F0" : undefined }} />
+                  <span>{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Section>
 
-        {/* Avatars */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Avatars</h2>
-          <Card className="bg-white rounded-2xl p-8 shadow-md">
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <Avatar className="w-16 h-16 bg-[#6C63FF] mx-auto mb-2">
-                  <AvatarFallback className="text-white font-semibold text-xl">
-                    MJ
-                  </AvatarFallback>
-                </Avatar>
-                <p className="text-sm text-gray-600">Large</p>
+        {/* ── INPUTS ── */}
+        <Section>
+          <SectionHeading>Input Fields</SectionHeading>
+          <div className="grid grid-cols-5 gap-5">
+            <div>
+              <p className="text-[11px] font-bold text-[#475569] mb-2">Default</p>
+              <input type="text" placeholder="Enter value…" readOnly className="w-full px-3 py-2 text-sm border border-[#E2E8F0] rounded-lg bg-white focus:outline-none" />
+              <p className="text-[10px] text-[#94A3B8] mt-1.5">Border #E2E8F0</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-[#475569] mb-2">Focused</p>
+              <div className="w-full px-3 py-2 text-sm border-2 border-[#272757] rounded-lg bg-white ring-2 ring-[#272757]/20 text-[#0F0E47]">Quiz title…</div>
+              <p className="text-[10px] text-[#94A3B8] mt-1.5">Border #272757 + ring</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-[#475569] mb-2">Error</p>
+              <input type="text" defaultValue="bad@" readOnly className="w-full px-3 py-2 text-sm border-2 border-[#EF4444] rounded-lg bg-white focus:outline-none" />
+              <p className="text-xs text-[#EF4444] flex items-center gap-1 mt-1"><XCircle className="w-3 h-3" /> Invalid email</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-[#475569] mb-2">Success</p>
+              <div className="relative">
+                <input type="text" defaultValue="teacher@school.rw" readOnly className="w-full px-3 py-2 text-sm border-2 border-[#10B981] rounded-lg bg-white focus:outline-none pr-8" />
+                <CheckCircle2 className="w-4 h-4 text-[#10B981] absolute right-2 top-1/2 -translate-y-1/2" />
               </div>
-              <div className="text-center">
-                <Avatar className="w-12 h-12 bg-[#4FC3F7] mx-auto mb-2">
-                  <AvatarFallback className="text-white font-semibold">
-                    AM
-                  </AvatarFallback>
-                </Avatar>
-                <p className="text-sm text-gray-600">Medium</p>
+              <p className="text-[10px] text-[#94A3B8] mt-1.5">Border #10B981</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-[#475569] mb-2">Disabled</p>
+              <input type="text" defaultValue="Read only" disabled className="w-full px-3 py-2 text-sm border border-[#E2E8F0] rounded-lg bg-[#F1F5F9] text-[#94A3B8] cursor-not-allowed" />
+              <p className="text-[10px] text-[#94A3B8] mt-1.5">bg #F1F5F9</p>
+            </div>
+          </div>
+        </Section>
+
+        {/* ── BADGES ── */}
+        <Section>
+          <SectionHeading>Badges</SectionHeading>
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 shadow-sm">
+            <div className="flex flex-wrap gap-6 mb-6">
+              {BADGE_VARIANTS.map(b => (
+                <div key={b.label} className="flex flex-col items-center gap-2">
+                  <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold" style={{ background: b.bg, color: b.text }}>{b.label}</span>
+                  <p className="text-[10px] text-[#94A3B8]">{b.label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="pt-4 border-t border-[#F1F5F9] grid grid-cols-6 gap-3">
+              {BADGE_VARIANTS.map(b => (
+                <div key={b.label + "-spec"} className="text-[10px] font-mono text-[#64748B]">
+                  <p className="font-bold text-[#0F0E47] mb-0.5">{b.label}</p>
+                  <p>bg: {b.bg}</p>
+                  <p>text: {b.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Section>
+
+        {/* ── CARD ── */}
+        <Section>
+          <SectionHeading>Card</SectionHeading>
+          <div className="grid grid-cols-2 gap-8">
+            <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#EDE9FE] flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-[#272757]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[#0F0E47]">Biology Quiz 3</p>
+                    <p className="text-xs text-[#64748B]">32 students · Due Jun 12</p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#D1FAE5] text-[#065F46]">Active</span>
               </div>
-              <div className="text-center">
-                <Avatar className="w-8 h-8 bg-[#43E6B5] mx-auto mb-2">
-                  <AvatarFallback className="text-white font-semibold text-xs">
-                    AD
-                  </AvatarFallback>
-                </Avatar>
-                <p className="text-sm text-gray-600">Small</p>
+              <div className="h-1 rounded-full bg-[#E2E8F0] mb-4">
+                <div className="h-1 rounded-full bg-[#272757] w-3/4" />
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-[#64748B]">24 / 32 submitted</p>
+                <button className="flex items-center gap-1 text-xs font-semibold text-[#272757] hover:text-[#1A1952]">
+                  View Results <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
-          </Card>
-        </section>
-
-        {/* Design Principles */}
-        <section>
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Design Principles</h2>
-          <Card className="bg-white rounded-2xl p-8 shadow-md">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  🎨 Friendly & Playful
-                </h3>
-                <p className="text-gray-600">
-                  Use rounded corners everywhere (16px-24px radius), soft shadows, and bouncy
-                  layouts to create a warm, approachable feel
-                </p>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  📏 8px Spacing Grid
-                </h3>
-                <p className="text-gray-600">
-                  Maintain consistent spacing using multiples of 8px (8, 16, 24, 32, etc.)
-                </p>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  🌈 Bold, Vibrant Colors
-                </h3>
-                <p className="text-gray-600">
-                  Use the QuizMind AI color palette to create visual hierarchy and role
-                  differentiation
-                </p>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  ✨ Emoji & Icons
-                </h3>
-                <p className="text-gray-600">
-                  Add personality with carefully chosen emojis and friendly Lucide icons
-                </p>
+            <div className="bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] p-5">
+              <p className="text-xs font-bold text-[#0F0E47] mb-4 uppercase tracking-wide">Specifications</p>
+              <div className="space-y-2 text-xs font-mono text-[#475569]">
+                {[
+                  ["Background",     "#FFFFFF"],
+                  ["Border",         "#E2E8F0 · 1px"],
+                  ["Border Radius",  "12px (rounded-xl)"],
+                  ["Shadow",         "0 1px 2px rgba(0,0,0,.05)"],
+                  ["Padding",        "20px (p-5)"],
+                  ["Icon Container", "40px · rounded-xl"],
+                  ["Icon Color",     "#272757 on #EDE9FE"],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between border-b border-[#E2E8F0] pb-1.5">
+                    <span>{k}</span><span className="text-[#272757]">{v}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          </Card>
-        </section>
+          </div>
+        </Section>
+
+        {/* ── SPACING ── */}
+        <Section>
+          <SectionHeading>Spacing (8px Grid)</SectionHeading>
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 shadow-sm">
+            <div className="flex items-end gap-8">
+              {SPACING.map(px => (
+                <div key={px} className="flex flex-col items-center gap-2">
+                  <div className="bg-[#272757] rounded" style={{ width: Math.max(px, 4) + "px", height: Math.max(px, 4) + "px" }} />
+                  <p className="text-[11px] font-mono text-[#475569]">{px}px</p>
+                  <p className="text-[10px] text-[#94A3B8]">
+                    {["p-1","p-2","p-3","p-4","p-6","p-8","p-12"][SPACING.indexOf(px)]}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Section>
+
+        {/* ── ICONS ── */}
+        <Section>
+          <SectionHeading>Icon Style</SectionHeading>
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 shadow-sm">
+            <p className="text-xs text-[#94A3B8] mb-5">All icons from <span className="font-mono text-[#272757]">lucide-react</span> · Stroke 1.5 · Default 20px</p>
+            <div className="flex flex-wrap gap-8 mb-8">
+              {ICONS.map(({ icon: Icon, name }) => (
+                <div key={name} className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-xl bg-[#EDE9FE] flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-[#272757]" />
+                  </div>
+                  <p className="text-[10px] text-[#64748B] font-mono">{name}</p>
+                </div>
+              ))}
+            </div>
+            <div className="pt-6 border-t border-[#F1F5F9]">
+              <p className="text-xs font-bold text-[#475569] mb-4">Size Scale</p>
+              <div className="flex items-end gap-8">
+                {[12, 14, 16, 20, 24, 32].map(size => (
+                  <div key={size} className="flex flex-col items-center gap-2">
+                    <Home style={{ width: size, height: size }} className="text-[#272757]" />
+                    <p className="text-[10px] font-mono text-[#94A3B8]">{size}px</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        {/* ── ALERTS ── */}
+        <Section>
+          <SectionHeading>Alerts & Toasts</SectionHeading>
+          <div className="space-y-3">
+            {[
+              { icon: CheckCircle2,  bg: "#D1FAE5", text: "#065F46", border: "#6EE7B7", label: "Success", msg: "Branding saved successfully." },
+              { icon: Info,          bg: "#DBEAFE", text: "#1E3A8A", border: "#93C5FD", label: "Info",    msg: "Your changes are saved as a draft." },
+              { icon: AlertTriangle, bg: "#FEF3C7", text: "#92400E", border: "#FCD34D", label: "Warning", msg: "Publishing will go live immediately." },
+              { icon: XCircle,       bg: "#FEE2E2", text: "#991B1B", border: "#FCA5A5", label: "Danger",  msg: "Failed to save. Please try again." },
+            ].map(({ icon: Icon, bg, text, border, label, msg }) => (
+              <div key={label} className="flex items-center gap-3 rounded-xl border px-4 py-3" style={{ background: bg, borderColor: border }}>
+                <Icon className="w-4 h-4 flex-shrink-0" style={{ color: text }} />
+                <div>
+                  <span className="text-xs font-bold" style={{ color: text }}>{label}: </span>
+                  <span className="text-xs" style={{ color: text }}>{msg}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        {/* Footer */}
+        <div className="pt-8 border-t border-[#E2E8F0] text-center">
+          <p className="text-xs text-[#94A3B8]">QuizMind AI · Blue Eclipse Design System · 1440px Desktop · 375px Mobile</p>
+        </div>
       </div>
     </div>
   );

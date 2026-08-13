@@ -4,7 +4,6 @@ import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Logo } from "../../components/Logo";
 import {
   Select,
   SelectContent,
@@ -21,13 +20,11 @@ import {
   Sparkles,
   Copy,
   Clock,
-  LogOut,
 } from "lucide-react";
-import { NotificationsPanel } from "../../components/NotificationsPanel";
 import { Badge } from "../../components/ui/badge";
+import { AppShell } from "../../components/AppShell";
 import { toast } from "sonner";
-import { api, initials, ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
+import { api, ApiError } from "@/lib/api";
 
 const educationLevels = [
   { value: "nursery", label: "Nursery", sublevels: ["Baby Class", "Middle Class", "Top Class"] },
@@ -73,7 +70,6 @@ function formatLevel(cls: ClassItem) {
 
 export function TeacherDashboard() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
   const [showClassModal, setShowClassModal] = useState(false);
   const [className, setClassName] = useState("");
   const [subject, setSubject] = useState("");
@@ -142,49 +138,8 @@ export function TeacherDashboard() {
     });
   };
 
-  const handleLogout = async () => {
-    await logout();
-    toast.success("Logged out successfully");
-    navigate("/login");
-  };
-
-  const displayName = user?.name || "Teacher";
-  const avatar = initials(displayName);
-
   return (
-    <div className="min-h-screen bg-[#F9F9FF]">
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Logo variant="horizontal" size="sm" color="#6C63FF" />
-              <Badge className="bg-[#6C63FF]/10 text-[#6C63FF] rounded-full">
-                Teacher
-              </Badge>
-            </div>
-            <div className="flex items-center gap-3">
-              <NotificationsPanel role="teacher" />
-              <Button
-                variant="ghost"
-                onClick={handleLogout}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </Button>
-              <span className="text-gray-700 font-medium">{displayName}</span>
-              <div
-                className="w-10 h-10 bg-[#6C63FF] rounded-full flex items-center justify-center text-white font-semibold cursor-pointer hover:ring-4 hover:ring-[#6C63FF]/20 transition-all"
-                onClick={() => navigate("/teacher/settings")}
-              >
-                {avatar}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <AppShell role="teacher" pageTitle="Dashboard">
         {loading && <p className="text-gray-500 mb-4">Loading dashboard…</p>}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -363,7 +318,6 @@ export function TeacherDashboard() {
             </div>
           </div>
         </div>
-      </div>
 
       {showClassModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -454,6 +408,6 @@ export function TeacherDashboard() {
           </Card>
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }

@@ -5,6 +5,7 @@ import { Card } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { ArrowLeft, Flag, BarChart3, Filter, BookOpen, Clock, Users } from "lucide-react";
 import { toast } from "sonner";
+import { AppShell } from "../../components/AppShell";
 import { api, ApiError } from "@/lib/api";
 
 type QuizStatus = "active" | "closed";
@@ -15,14 +16,6 @@ interface OversightQuiz {
   created: string; deadline: string; status: QuizStatus;
   submissions: number; flagged: boolean;
 }
-
-const initialQuizzes: OversightQuiz[] = [
-  { id: 1, title: "Algebra Fundamentals", teacher: "Ms. Johnson", class: "S3 Biology 2026", created: "Jul 10, 2026", deadline: "Jul 20, 2026", status: "active", submissions: 18, flagged: false },
-  { id: 2, title: "Physics Chapter 3", teacher: "Mr. Smith", class: "S5 Chemistry", created: "Jul 9, 2026", deadline: "Jul 15, 2026", status: "active", submissions: 12, flagged: true },
-  { id: 3, title: "Biology Basics", teacher: "Ms. Johnson", class: "S3 Biology 2026", created: "Jul 8, 2026", deadline: "Jul 12, 2026", status: "closed", submissions: 24, flagged: false },
-  { id: 4, title: "Geometry Quiz", teacher: "Mr. Smith", class: "S5 Chemistry", created: "Jul 7, 2026", deadline: "Jul 18, 2026", status: "active", submissions: 6, flagged: false },
-  { id: 5, title: "Chemistry Reactions", teacher: "Dr. Mukama", class: "TVET Certificate", created: "Jul 6, 2026", deadline: "Jul 11, 2026", status: "closed", submissions: 31, flagged: true },
-];
 
 export function AdminQuizOversight() {
   const navigate = useNavigate();
@@ -85,24 +78,19 @@ export function AdminQuizOversight() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F9FF]">
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate("/admin")} className="rounded-xl">
-              <ArrowLeft className="w-5 h-5 mr-2" /> Admin Dashboard
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Quiz Oversight</h1>
-              <p className="text-sm text-gray-500">{loading ? "Loading…" : `${quizzes.length} quizzes across platform`}</p>
-            </div>
-          </div>
+    <AppShell role="admin" pageTitle="Quiz Oversight">
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="ghost" onClick={() => navigate("/admin")} className="rounded-xl">
+          <ArrowLeft className="w-5 h-5 mr-2" /> Admin Dashboard
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Quiz Oversight</h1>
+          <p className="text-sm text-gray-500">{loading ? "Loading…" : `${quizzes.length} quizzes across platform`}</p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
           {[
             { label: "Total", value: filterCounts.all, color: "text-gray-800" },
             { label: "Active", value: filterCounts.active, color: "text-[#43E6B5]" },
@@ -200,7 +188,6 @@ export function AdminQuizOversight() {
             </Card>
           ))}
         </div>
-      </div>
-    </div>
+    </AppShell>
   );
 }

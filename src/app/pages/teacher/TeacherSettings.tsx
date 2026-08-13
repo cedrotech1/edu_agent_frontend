@@ -5,10 +5,7 @@ import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Switch } from "../../components/ui/switch";
-import { Logo } from "../../components/Logo";
-import { Badge } from "../../components/ui/badge";
 import {
-  ArrowLeft,
   Camera,
   Lock,
   Mail,
@@ -20,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { api, ApiError, initials } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { AppShell } from "../../components/AppShell";
 
 export function TeacherSettings() {
   const navigate = useNavigate();
@@ -107,34 +105,8 @@ export function TeacherSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F9FF]">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/teacher")}
-                className="rounded-xl"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                Back to Dashboard
-              </Button>
-            </div>
-            <div className="flex items-center gap-3">
-              <Logo variant="horizontal" size="sm" color="#6C63FF" />
-              <Badge className="bg-[#6C63FF]/10 text-[#6C63FF] rounded-full">
-                Teacher
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">Settings</h1>
-
+    <AppShell role="teacher" pageTitle="Settings">
+      <div className="max-w-4xl mx-auto">
         {/* Profile Section */}
         <Card className="bg-white rounded-3xl p-8 shadow-md mb-6">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
@@ -384,6 +356,6 @@ export function TeacherSettings() {
           </Card>
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }

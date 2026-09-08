@@ -119,7 +119,26 @@ export function AdminActivityLog() {
           </button>
           <button
             onClick={() => {
-              toast.success("Activity export started");
+              const rows = filteredLogs.length ? filteredLogs : [];
+              if (!rows.length) {
+                toast.error("Nothing to export");
+                return;
+              }
+              const header = "Time,Type,Message,Result\n";
+              const body = rows
+                .map(
+                  (log) =>
+                    `"${String(log.ts).replace(/"/g, '""')}","${log.type}","${String(log.message).replace(/"/g, '""')}","${log.result}"`
+                )
+                .join("\n");
+              const blob = new Blob([header + body], { type: "text/csv;charset=utf-8" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "activity-log.csv";
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success("Activity CSV downloaded");
             }}
             className="h-9 px-3 rounded-lg border border-[#E2E8F0] text-sm font-medium text-[#0F0E47] hover:bg-[#F8FAFC] inline-flex items-center gap-1.5 ml-auto"
           >

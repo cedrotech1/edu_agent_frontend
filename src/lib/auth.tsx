@@ -28,7 +28,9 @@ interface AuthContextValue {
     name: string;
     email: string;
     password: string;
-    institution: string;
+    institution?: string;
+    schoolIds: number[];
+    primarySchoolId?: number;
     role: UserRole;
   }) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
@@ -51,10 +53,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const setSession = useCallback((nextToken: string, nextUser: AuthUser) => {
+    const normalized = { ...nextUser, name: nextUser.name || (nextUser as any).names || "" };
     setToken(nextToken);
-    setStoredUser(nextUser);
+    setStoredUser(normalized);
     setTokenState(nextToken);
-    setUser(nextUser);
+    setUser(getStoredUser() || normalized);
   }, []);
 
   const refreshMe = useCallback(async () => {
@@ -69,9 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = (res.user || res.data) as AuthUser;
       if (me) {
         setStoredUser(me);
-        setUser(me);
+        const stored = getStoredUser();
+        setUser(stored);
         setTokenState(existing);
-        return me;
+        return stored;
       }
       return null;
     } catch (err) {

@@ -4,12 +4,9 @@ import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Switch } from "../../components/ui/switch";
 import {
-  Camera,
   Lock,
   Mail,
-  Bell,
   AlertTriangle,
   LogOut,
   Save,
@@ -25,8 +22,6 @@ export function AdminSettings() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [school, setSchool] = useState("");
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [resultsNotifications, setResultsNotifications] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
@@ -54,10 +49,19 @@ export function AdminSettings() {
     }
   };
 
-  const handlePasswordReset = () => {
-    toast.success("Password reset link sent!", {
-      description: "Check your email for the reset link.",
-    });
+  const handlePasswordReset = async () => {
+    if (!email.trim()) {
+      toast.error("No email on your profile");
+      return;
+    }
+    try {
+      await api.auth.forgotPassword(email.trim());
+      toast.success("Password reset link sent!", {
+        description: "Check your email for the reset link.",
+      });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to send reset email");
+    }
   };
 
   const handlePasswordChange = async () => {
@@ -108,23 +112,18 @@ export function AdminSettings() {
     <AppShell role="admin" pageTitle="Settings">
       <div className="max-w-4xl mx-auto">
         {/* Profile Section */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md mb-6">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
             Profile Information
           </h2>
 
           <div className="flex items-center gap-6 mb-8">
-            <div className="relative">
-              <div className="w-24 h-24 bg-[#43E6B5] rounded-full flex items-center justify-center text-white text-3xl font-semibold">
-                {initials(fullName || user?.name)}
-              </div>
-              <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center border-2 border-[#43E6B5] hover:bg-[#43E6B5] hover:text-white transition-colors">
-                <Camera className="w-4 h-4" />
-              </button>
+            <div className="w-24 h-24 bg-[#10B981] rounded-full flex items-center justify-center text-white text-3xl font-semibold">
+              {initials(fullName || user?.name)}
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-800">Profile Photo</h3>
-              <p className="text-gray-600 text-sm">Click the camera icon to upload a new photo</p>
+              <h3 className="text-xl font-semibold text-gray-800">Your profile</h3>
+              <p className="text-gray-600 text-sm">Update your name, email, and school below</p>
             </div>
           </div>
 
@@ -134,7 +133,7 @@ export function AdminSettings() {
               <Input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                className="rounded-xl border border-gray-200 px-4 py-3"
               />
             </div>
 
@@ -144,7 +143,7 @@ export function AdminSettings() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                className="rounded-xl border border-gray-200 px-4 py-3"
               />
             </div>
 
@@ -153,13 +152,13 @@ export function AdminSettings() {
               <Input
                 value={school}
                 onChange={(e) => setSchool(e.target.value)}
-                className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                className="rounded-xl border border-gray-200 px-4 py-3"
               />
             </div>
 
             <Button
               onClick={handleSaveProfile}
-              className="bg-[#43E6B5] hover:bg-[#2DD49E] text-white px-8 py-3 rounded-xl flex items-center gap-2"
+              className="bg-[#10B981] hover:bg-[#059669] text-white px-8 py-3 rounded-xl flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
               Save Changes
@@ -168,16 +167,16 @@ export function AdminSettings() {
         </Card>
 
         {/* Security Section */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md mb-6">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-            <Lock className="w-6 h-6 text-[#43E6B5]" />
+            <Lock className="w-6 h-6 text-[#10B981]" />
             Security
           </h2>
 
           <div className="space-y-4">
             <Button
               onClick={() => setShowPasswordModal(true)}
-              className="w-full bg-[#43E6B5] hover:bg-[#2DD49E] text-white py-3 rounded-xl"
+              className="w-full bg-[#10B981] hover:bg-[#059669] text-white py-3 rounded-xl"
             >
               Change Password
             </Button>
@@ -185,7 +184,7 @@ export function AdminSettings() {
             <Button
               onClick={handlePasswordReset}
               variant="outline"
-              className="w-full border-2 border-[#43E6B5] text-[#43E6B5] hover:bg-[#43E6B5]/10 py-3 rounded-xl"
+              className="w-full border border-[#10B981] text-[#10B981] hover:bg-[#10B981]/10 py-3 rounded-xl"
             >
               <Mail className="w-4 h-4 mr-2" />
               Reset Password via Email
@@ -193,40 +192,8 @@ export function AdminSettings() {
           </div>
         </Card>
 
-        {/* Notification Preferences */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-            <Bell className="w-6 h-6 text-[#43E6B5]" />
-            Notification Preferences
-          </h2>
-
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-800">Email notifications for quiz deadlines</p>
-                <p className="text-sm text-gray-600">Get notified about system-wide quiz activity</p>
-              </div>
-              <Switch
-                checked={emailNotifications}
-                onCheckedChange={setEmailNotifications}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-800">Email notifications when results are ready</p>
-                <p className="text-sm text-gray-600">Get notified about flagged quizzes and suspicious activity</p>
-              </div>
-              <Switch
-                checked={resultsNotifications}
-                onCheckedChange={setResultsNotifications}
-              />
-            </div>
-          </div>
-        </Card>
-
         {/* Danger Zone */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md border-2 border-red-200">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 border-2 border-red-200">
           <h2 className="text-2xl font-semibold text-red-600 mb-6 flex items-center gap-2">
             <AlertTriangle className="w-6 h-6" />
             Danger Zone
@@ -256,7 +223,7 @@ export function AdminSettings() {
       {/* Change Password Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 w-full max-w-md">
             <h3 className="text-2xl font-bold text-gray-800 mb-6">Change Password</h3>
             
             <div className="space-y-4 mb-6">
@@ -266,7 +233,7 @@ export function AdminSettings() {
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                  className="rounded-xl border border-gray-200 px-4 py-3"
                   placeholder="Enter current password"
                 />
               </div>
@@ -277,7 +244,7 @@ export function AdminSettings() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                  className="rounded-xl border border-gray-200 px-4 py-3"
                   placeholder="Enter new password"
                 />
               </div>
@@ -288,7 +255,7 @@ export function AdminSettings() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                  className="rounded-xl border border-gray-200 px-4 py-3"
                   placeholder="Confirm new password"
                 />
               </div>
@@ -298,13 +265,13 @@ export function AdminSettings() {
               <Button
                 variant="outline"
                 onClick={() => setShowPasswordModal(false)}
-                className="flex-1 border-2 border-gray-200 rounded-xl py-3"
+                className="flex-1 border border-gray-200 rounded-xl py-3"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handlePasswordChange}
-                className="flex-1 bg-[#43E6B5] hover:bg-[#2DD49E] text-white rounded-xl py-3"
+                className="flex-1 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl py-3"
               >
                 Update Password
               </Button>
@@ -316,7 +283,7 @@ export function AdminSettings() {
       {/* Delete Account Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 w-full max-w-md">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-8 h-8 text-red-500" />
@@ -342,7 +309,7 @@ export function AdminSettings() {
                   setShowDeleteModal(false);
                   setDeleteConfirmation("");
                 }}
-                className="flex-1 border-2 border-gray-200 rounded-xl py-3"
+                className="flex-1 border border-gray-200 rounded-xl py-3"
               >
                 Cancel
               </Button>

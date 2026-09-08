@@ -5,7 +5,15 @@ import { Card } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { ArrowLeft, Sparkles, CheckCircle, Edit, AlertCircle, Filter } from "lucide-react";
+import {
+  ArrowLeft,
+  Sparkles,
+  CheckCircle,
+  Edit,
+  AlertCircle,
+  Filter,
+  Flag,
+} from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError, initials } from "@/lib/api";
 import { AppShell } from "../../components/AppShell";
@@ -99,162 +107,195 @@ export function FlaggedAnswers() {
   };
 
   const confidenceColor = (c: number) =>
-    c >= 80 ? "bg-[#43E6B5]/10 text-[#43E6B5]" : c >= 65 ? "bg-[#FFD166]/10 text-[#FFD166]" : "bg-red-50 text-red-500";
+    c >= 80
+      ? "bg-emerald-50 text-emerald-700"
+      : c >= 65
+        ? "bg-amber-50 text-amber-700"
+        : "bg-red-50 text-red-600";
+
+  const stats = [
+    {
+      label: "Total Flagged",
+      value: String(answers.length),
+      valueColor: "text-[#0F0E47]",
+      icon: Flag,
+      iconBg: "bg-gray-50",
+      iconColor: "text-[#272757]",
+    },
+    {
+      label: "Low Confidence",
+      value: String(answers.filter((a) => a.confidence < 70).length),
+      valueColor: "text-amber-700",
+      icon: AlertCircle,
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-600",
+    },
+    {
+      label: "Overridden",
+      value: String(answers.filter((a) => a.overridden).length),
+      valueColor: "text-[#272757]",
+      icon: Edit,
+      iconBg: "bg-[#EDE9FE]",
+      iconColor: "text-[#272757]",
+    },
+  ];
 
   return (
     <AppShell role="teacher" pageTitle="Flagged Answers">
-      {loading && <p className="text-gray-500 mb-4">Loading…</p>}
-      <div className="flex items-center gap-4 mb-6">
+      {loading && <p className="text-gray-500 mb-4 text-sm">Loading…</p>}
+
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
         <Button
           variant="ghost"
           onClick={() => navigate(`/teacher/results/${quizId}`)}
-          className="rounded-xl"
+          className="rounded-xl h-9 px-3 text-gray-600"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
+          <ArrowLeft className="w-4 h-4 mr-1.5" />
           Back to Results
         </Button>
-        <div className="flex items-center gap-3">
-          <AlertCircle className="w-7 h-7 text-[#FFD166]" />
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Flagged Answers</h2>
-            <p className="text-sm text-gray-600">{quizTitle}</p>
-          </div>
+        <div>
+          <h2 className="text-lg font-semibold text-[#0F0E47]">Flagged Answers</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{quizTitle}</p>
         </div>
       </div>
 
-        {/* Summary */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <Card className="bg-white rounded-2xl p-5 shadow-md text-center">
-            <p className="text-gray-500 text-sm mb-1">Total Flagged</p>
-            <p className="text-3xl font-bold text-gray-800">{answers.length}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        {stats.map(({ label, value, valueColor, icon: Icon, iconBg, iconColor }) => (
+          <Card key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <p className="text-xs font-medium text-gray-500">{label}</p>
+              <div className={`w-9 h-9 ${iconBg} rounded-lg flex items-center justify-center shrink-0`}>
+                <Icon className={`w-4 h-4 ${iconColor}`} strokeWidth={1.75} />
+              </div>
+            </div>
+            <p className={`text-3xl font-semibold tracking-tight ${valueColor}`}>{value}</p>
           </Card>
-          <Card className="bg-white rounded-2xl p-5 shadow-md text-center">
-            <p className="text-gray-500 text-sm mb-1">Low Confidence</p>
-            <p className="text-3xl font-bold text-[#FFD166]">
-              {answers.filter((a) => a.confidence < 70).length}
-            </p>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
+        <Filter className="w-4 h-4 text-gray-400" />
+        {(["all", "low-confidence", "overridden"] as FilterType[]).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all ${
+              filter === f
+                ? "bg-[#272757] text-white"
+                : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            {f === "low-confidence" ? "Low Confidence" : f.charAt(0).toUpperCase() + f.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {filtered.length === 0 && (
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-10 text-center">
+            <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <CheckCircle className="w-6 h-6 text-emerald-600" strokeWidth={1.75} />
+            </div>
+            <h3 className="text-sm font-semibold text-[#0F0E47] mb-1">Nothing here</h3>
+            <p className="text-xs text-gray-500">No answers match this filter</p>
           </Card>
-          <Card className="bg-white rounded-2xl p-5 shadow-md text-center">
-            <p className="text-gray-500 text-sm mb-1">Overridden</p>
-            <p className="text-3xl font-bold text-[#6C63FF]">
-              {answers.filter((a) => a.overridden).length}
-            </p>
-          </Card>
-        </div>
+        )}
 
-        {/* Filter bar */}
-        <div className="flex items-center gap-3 mb-6">
-          <Filter className="w-5 h-5 text-gray-500" />
-          {(["all", "low-confidence", "overridden"] as FilterType[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize ${
-                filter === f
-                  ? "bg-[#6C63FF] text-white"
-                  : "bg-white text-gray-600 border-2 border-gray-200 hover:border-[#6C63FF]"
-              }`}
-            >
-              {f === "low-confidence" ? "Low Confidence" : f.charAt(0).toUpperCase() + f.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        {/* Answer list */}
-        <div className="space-y-4">
-          {filtered.length === 0 && (
-            <Card className="bg-white rounded-2xl p-12 shadow-md text-center">
-              <CheckCircle className="w-12 h-12 text-[#43E6B5] mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Nothing here</h3>
-              <p className="text-gray-500">No answers match this filter</p>
-            </Card>
-          )}
-
-          {filtered.map((item) => (
-            <Card key={item.id} className="bg-white rounded-2xl p-6 shadow-md">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4 flex-1">
-                  <div className="w-10 h-10 bg-[#6C63FF] rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0">
-                    {item.initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <span className="font-semibold text-gray-800">{item.student}</span>
-                      <Badge className={`rounded-full text-xs font-medium ${confidenceColor(item.confidence)}`}>
-                        {item.confidence}% confident
-                      </Badge>
-                      {item.overridden && (
-                        <Badge className="rounded-full text-xs bg-[#6C63FF]/10 text-[#6C63FF]">
-                          Overridden → {item.manualScore}%
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500 mb-2 font-medium">{item.question}</p>
-                    <div className="bg-gray-50 rounded-xl px-4 py-3 text-gray-700 text-sm mb-3">
-                      "{item.answer}"
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Sparkles className="w-4 h-4 text-[#6C63FF]" />
-                      AI score: <span className="font-semibold text-gray-800">{item.aiScore}%</span>
-                    </div>
-                  </div>
+        {filtered.map((item) => (
+          <Card
+            key={item.id}
+            className="bg-white rounded-xl border border-gray-100 shadow-sm p-5"
+          >
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div className="w-9 h-9 bg-[#272757] rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0">
+                  {item.initials}
                 </div>
-
-                <div className="flex flex-col gap-2 shrink-0">
-                  <Button
-                    onClick={() => acceptAIGrade(item.id)}
-                    className="bg-[#43E6B5] hover:bg-[#2DD49E] text-white rounded-xl text-sm px-4 py-2"
-                    disabled={!item.overridden}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Accept AI
-                  </Button>
-                  <Button
-                    onClick={() => openOverride(item.id)}
-                    variant="outline"
-                    className="border-2 border-[#6C63FF] text-[#6C63FF] hover:bg-[#6C63FF]/10 rounded-xl text-sm px-4 py-2"
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Override
-                  </Button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span className="text-sm font-semibold text-[#0F0E47]">{item.student}</span>
+                    <Badge className={`rounded-full text-[11px] font-medium ${confidenceColor(item.confidence)}`}>
+                      {item.confidence}% confident
+                    </Badge>
+                    {item.overridden && (
+                      <Badge className="rounded-full text-[11px] bg-[#EDE9FE] text-[#272757]">
+                        Overridden → {item.manualScore}%
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mb-2 font-medium">{item.question}</p>
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2.5 text-gray-700 text-sm mb-3">
+                    "{item.answer}"
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <Sparkles className="w-3.5 h-3.5 text-[#272757]" strokeWidth={1.75} />
+                    AI score:{" "}
+                    <span className="font-semibold text-[#0F0E47]">{item.aiScore}%</span>
+                  </div>
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
 
-      {/* Override modal */}
+              <div className="flex flex-col gap-2 shrink-0">
+                <Button
+                  onClick={() => acceptAIGrade(item.id)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm h-9 px-4"
+                  disabled={!item.overridden}
+                >
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Accept AI
+                </Button>
+                <Button
+                  onClick={() => openOverride(item.id)}
+                  variant="outline"
+                  className="border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl text-sm h-9 px-4"
+                >
+                  <Edit className="w-4 h-4 mr-1" />
+                  Override
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
       {overrideTarget !== null && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Override Grade</h3>
-            <p className="text-gray-600 text-sm mb-6">
+          <Card className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm border border-gray-100">
+            <h3 className="text-base font-semibold text-[#0F0E47] mb-1">Override Grade</h3>
+            <p className="text-gray-500 text-xs mb-5">
               {answers.find((a) => a.id === overrideTarget)?.student}
             </p>
             <div className="mb-4">
-              <Label className="mb-2 block text-gray-700">Manual Score (0–100)</Label>
+              <Label className="mb-1.5 block text-xs font-medium text-gray-600">
+                Manual Score (0–100)
+              </Label>
               <Input
                 type="number"
                 value={overrideScore}
-                onChange={(e) => { setOverrideScore(e.target.value); setOverrideError(""); }}
-                className={`rounded-xl border-2 px-4 py-3 text-center text-xl font-bold ${overrideError ? "border-red-400" : "border-gray-200"}`}
+                onChange={(e) => {
+                  setOverrideScore(e.target.value);
+                  setOverrideError("");
+                }}
+                className={`rounded-xl border h-11 px-4 text-center text-xl font-semibold ${
+                  overrideError ? "border-red-400" : "border-gray-200"
+                }`}
                 placeholder="e.g. 80"
                 min={0}
                 max={100}
               />
-              {overrideError && <p className="text-red-500 text-sm mt-1">{overrideError}</p>}
+              {overrideError && <p className="text-red-500 text-xs mt-1">{overrideError}</p>}
             </div>
             <div className="flex gap-3">
               <Button
                 variant="outline"
                 onClick={() => setOverrideTarget(null)}
-                className="flex-1 border-2 border-gray-200 rounded-xl py-3"
+                className="flex-1 border border-gray-200 rounded-xl h-10 text-sm"
               >
                 Cancel
               </Button>
               <Button
                 onClick={saveOverride}
-                className="flex-1 bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl py-3"
+                className="flex-1 bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-10 text-sm"
               >
                 Save Grade
               </Button>

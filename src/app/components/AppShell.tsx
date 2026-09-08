@@ -2,27 +2,24 @@ import type { ReactNode } from "react";
 import { DashboardLayout } from "./DashboardLayout";
 import {
   adminNavItems,
-  parentNavItems,
   studentNavItems,
   teacherNavItems,
 } from "./navConfigs";
 import { initials } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
-type Role = "teacher" | "student" | "admin" | "parent";
+type Role = "teacher" | "student" | "admin";
 
 const navByRole = {
   teacher: teacherNavItems,
   student: studentNavItems,
   admin: adminNavItems,
-  parent: parentNavItems,
 } as const;
 
 const defaultName: Record<Role, string> = {
   teacher: "Teacher",
   student: "Student",
   admin: "Admin",
-  parent: "Parent",
 };
 
 interface AppShellProps {

@@ -121,7 +121,7 @@ export function AdminUserManagement() {
             <p className="text-sm text-gray-500">{loading ? "Loading…" : `${users.length} total users`}</p>
           </div>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl gap-2">
+        <Button onClick={() => setShowAddModal(true)} className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl gap-2">
           <UserPlus className="w-4 h-4" /> Add User
         </Button>
       </div>
@@ -132,10 +132,10 @@ export function AdminUserManagement() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or email..."
-              className="pl-10 rounded-xl border-2 border-gray-200 py-3" />
+              className="pl-10 rounded-xl border border-gray-200 py-3" />
           </div>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-44 rounded-xl border-2 border-gray-200">
+            <SelectTrigger className="w-44 rounded-xl border border-gray-200">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -146,7 +146,7 @@ export function AdminUserManagement() {
           </Select>
       </div>
 
-      <Card className="bg-white rounded-2xl shadow-md overflow-hidden">
+      <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         {filtered.length === 0 ? (
           <div className="p-12 text-center">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -171,7 +171,7 @@ export function AdminUserManagement() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                        u.role === "teacher" ? "bg-[#6C63FF]" : "bg-[#4FC3F7]"
+                        u.role === "teacher" ? "bg-[#272757]" : "bg-[#272757]"
                       }`}>{u.initials}</div>
                       <span className="font-medium text-gray-800">{u.name}</span>
                     </div>
@@ -179,13 +179,13 @@ export function AdminUserManagement() {
                   <td className="px-6 py-4 text-gray-600 text-sm">{u.email}</td>
                   <td className="px-6 py-4">
                     <Badge className={`rounded-full capitalize ${
-                      u.role === "teacher" ? "bg-[#6C63FF]/10 text-[#6C63FF]" : "bg-[#4FC3F7]/10 text-[#4FC3F7]"
+                      u.role === "teacher" ? "bg-[#272757]/10 text-[#272757]" : "bg-[#272757]/10 text-[#272757]"
                     }`}>{u.role}</Badge>
                   </td>
                   <td className="px-6 py-4 text-gray-600 text-sm">{u.school}</td>
                   <td className="px-6 py-4 text-center">
                     <Badge className={`rounded-full ${
-                      u.status === "active" ? "bg-[#43E6B5]/10 text-[#43E6B5]" : "bg-red-100 text-red-600"
+                      u.status === "active" ? "bg-[#10B981]/10 text-[#10B981]" : "bg-red-100 text-red-600"
                     }`}>
                       {u.status === "active" ? "✓ Active" : "✕ Suspended"}
                     </Badge>
@@ -193,14 +193,14 @@ export function AdminUserManagement() {
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
                       <button onClick={() => setProfileUser(u)}
-                        className="p-2 text-[#6C63FF] hover:bg-[#6C63FF]/10 rounded-lg transition-colors" title="View Profile">
+                        className="p-2 text-[#272757] hover:bg-[#272757]/10 rounded-lg transition-colors" title="View Profile">
                         <Eye className="w-4 h-4" />
                       </button>
                       <button onClick={() => toggleStatus(u.id)}
                         className={`p-2 rounded-lg transition-colors ${
                           u.status === "active"
                             ? "text-red-500 hover:bg-red-50"
-                            : "text-[#43E6B5] hover:bg-[#43E6B5]/10"
+                            : "text-[#10B981] hover:bg-[#10B981]/10"
                         }`} title={u.status === "active" ? "Suspend" : "Activate"}>
                         {u.status === "active" ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
                       </button>
@@ -227,11 +227,11 @@ export function AdminUserManagement() {
             <div className="p-6">
               <div className="text-center mb-6">
                 <div className={`w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4 ${
-                  profileUser.role === "teacher" ? "bg-[#6C63FF]" : "bg-[#4FC3F7]"
+                  profileUser.role === "teacher" ? "bg-[#272757]" : "bg-[#272757]"
                 }`}>{profileUser.initials}</div>
                 <h3 className="text-xl font-bold text-gray-800">{profileUser.name}</h3>
                 <Badge className={`mt-2 rounded-full capitalize ${
-                  profileUser.role === "teacher" ? "bg-[#6C63FF]/10 text-[#6C63FF]" : "bg-[#4FC3F7]/10 text-[#4FC3F7]"
+                  profileUser.role === "teacher" ? "bg-[#272757]/10 text-[#272757]" : "bg-[#272757]/10 text-[#272757]"
                 }`}>{profileUser.role}</Badge>
               </div>
               <div className="space-y-4">
@@ -241,7 +241,7 @@ export function AdminUserManagement() {
                   { icon: BookOpen, label: "Quizzes", value: String(profileUser.quizzes) },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                    <Icon className="w-5 h-5 text-[#6C63FF]" />
+                    <Icon className="w-5 h-5 text-[#272757]" />
                     <div>
                       <p className="text-xs text-gray-500">{label}</p>
                       <p className="font-medium text-gray-800">{value}</p>
@@ -249,7 +249,7 @@ export function AdminUserManagement() {
                   </div>
                 ))}
                 <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                  <div className={`w-3 h-3 rounded-full ${profileUser.status === "active" ? "bg-[#43E6B5]" : "bg-red-500"}`} />
+                  <div className={`w-3 h-3 rounded-full ${profileUser.status === "active" ? "bg-[#10B981]" : "bg-red-500"}`} />
                   <div>
                     <p className="text-xs text-gray-500">Status</p>
                     <p className="font-medium text-gray-800 capitalize">{profileUser.status}</p>
@@ -261,7 +261,7 @@ export function AdminUserManagement() {
                 className={`w-full mt-6 rounded-xl py-3 ${
                   profileUser.status === "active"
                     ? "bg-red-500 hover:bg-red-600 text-white"
-                    : "bg-[#43E6B5] hover:bg-[#2DD49E] text-white"
+                    : "bg-[#10B981] hover:bg-[#059669] text-white"
                 }`}
               >
                 {profileUser.status === "active" ? "Suspend Account" : "Activate Account"}
@@ -274,7 +274,7 @@ export function AdminUserManagement() {
       {/* Add User Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-gray-800">Add New User</h3>
               <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -302,7 +302,7 @@ export function AdminUserManagement() {
               <div>
                 <Label className="mb-2 block text-gray-700">Role</Label>
                 <Select value={newUser.role} onValueChange={(v) => setNewUser((p) => ({ ...p, role: v }))}>
-                  <SelectTrigger className="rounded-xl border-2 border-gray-200 px-4 py-3">
+                  <SelectTrigger className="rounded-xl border border-gray-200 px-4 py-3">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -313,8 +313,8 @@ export function AdminUserManagement() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1 border-2 border-gray-200 rounded-xl py-3">Cancel</Button>
-              <Button onClick={handleAddUser} className="flex-1 bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl py-3">Add User</Button>
+              <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1 border border-gray-200 rounded-xl py-3">Cancel</Button>
+              <Button onClick={handleAddUser} className="flex-1 bg-[#272757] hover:bg-[#505081] text-white rounded-xl py-3">Add User</Button>
             </div>
           </Card>
         </div>

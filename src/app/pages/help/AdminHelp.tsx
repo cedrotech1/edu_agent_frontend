@@ -11,10 +11,6 @@ const faqs = [
     a: "Go to User Management from the sidebar. Click 'Add Teacher', fill in their name and email, and they will receive an email invitation to join the platform. To remove a teacher, find them in the table and click Suspend to restrict access, or Delete to permanently remove their account.",
   },
   {
-    q: "How do I change the subscription plan?",
-    a: "Go to System Settings and select the Subscription Plan section. You can view your current usage, compare available plans, and upgrade or downgrade at any time. Changes take effect at the start of the next billing cycle.",
-  },
-  {
     q: "How do I override an AI grade?",
     a: "Navigate to AI Grading Logs from the sidebar. Find the specific submission using the filters, then click the Override button. Enter the corrected grade and a reason for the override. The student's results page will update automatically.",
   },

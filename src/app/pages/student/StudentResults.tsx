@@ -86,17 +86,17 @@ export function StudentResults() {
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 90) return "text-[#43E6B5]";
-    if (score >= 80) return "text-[#4FC3F7]";
-    if (score >= 70) return "text-[#FFD166]";
+    if (score >= 90) return "text-emerald-600";
+    if (score >= 80) return "text-[#272757]";
+    if (score >= 70) return "text-amber-600";
     return "text-red-500";
   };
 
   const getScoreBadge = (score: number) => {
-    if (score >= 90) return { text: "Excellent! 🌟", bg: "bg-[#43E6B5]/10", color: "text-[#43E6B5]" };
-    if (score >= 80) return { text: "Great Job! 👏", bg: "bg-[#4FC3F7]/10", color: "text-[#4FC3F7]" };
-    if (score >= 70) return { text: "Good Effort! 💪", bg: "bg-[#FFD166]/10", color: "text-[#FFD166]" };
-    return { text: "Keep Trying! 📚", bg: "bg-red-100", color: "text-red-600" };
+    if (score >= 90) return { text: "Excellent", bg: "bg-emerald-50", color: "text-emerald-700" };
+    if (score >= 80) return { text: "Great Job", bg: "bg-[#EDE9FE]", color: "text-[#272757]" };
+    if (score >= 70) return { text: "Good Effort", bg: "bg-amber-50", color: "text-amber-700" };
+    return { text: "Keep Trying", bg: "bg-red-50", color: "text-red-600" };
   };
 
   const scoreBadge = getScoreBadge(mockResults.score);
@@ -113,22 +113,23 @@ export function StudentResults() {
           Back
         </Button>
         <div className="flex items-center gap-3">
-          <Sparkles className="w-8 h-8 text-[#4FC3F7]" />
+          <div className="w-10 h-10 bg-[#EDE9FE] rounded-xl flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-[#272757]" />
+          </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Quiz Results</h1>
-            <p className="text-sm text-gray-600">{mockResults.quizTitle} - {mockResults.subject}</p>
+            <h1 className="text-sm font-semibold text-[#0F0E47]">Quiz Results</h1>
+            <p className="text-xs font-medium text-gray-500">{mockResults.quizTitle} - {mockResults.subject}</p>
           </div>
         </div>
       </div>
 
-      {/* Score Summary */}
-      <Card className="bg-gradient-to-br from-white to-gray-50 rounded-3xl p-8 shadow-lg mb-8">
+      <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 mb-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <Badge className={`${scoreBadge.bg} ${scoreBadge.color} rounded-full mb-3 text-base px-4 py-1`}>
               {scoreBadge.text}
             </Badge>
-            <h2 className="text-5xl font-bold mb-2 ${getScoreColor(mockResults.score)}">
+            <h2 className="text-5xl font-semibold mb-2">
               <span className={getScoreColor(mockResults.score)}>{mockResults.score}%</span>
             </h2>
             <p className="text-gray-600 text-lg">
@@ -136,44 +137,49 @@ export function StudentResults() {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-6 text-center">
-            <div className="bg-white rounded-2xl p-6 shadow-md">
-              <Clock className="w-8 h-8 text-[#6C63FF] mx-auto mb-2" />
-              <p className="text-sm text-gray-600 mb-1">Time Taken</p>
-              <p className="font-semibold text-gray-800">{mockResults.timeTaken}</p>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <div className="w-10 h-10 bg-[#EDE9FE] rounded-xl flex items-center justify-center mx-auto mb-2">
+                <Clock className="w-5 h-5 text-[#272757]" />
+              </div>
+              <p className="text-xs font-medium text-gray-500 mb-1">Time Taken</p>
+              <p className="font-semibold text-[#0F0E47]">{mockResults.timeTaken}</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-md">
-              <Award className="w-8 h-8 text-[#FFD166] mx-auto mb-2" />
-              <p className="text-sm text-gray-600 mb-1">Class Rank</p>
-              <p className="font-semibold text-gray-800">{mockResults.classRank}</p>
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                <Award className="w-5 h-5 text-amber-600" />
+              </div>
+              <p className="text-xs font-medium text-gray-500 mb-1">Class Rank</p>
+              <p className="font-semibold text-[#0F0E47]">{mockResults.classRank}</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-md">
-              <Sparkles className="w-8 h-8 text-[#43E6B5] mx-auto mb-2" />
-              <p className="text-sm text-gray-600 mb-1">Class Avg</p>
-              <p className="font-semibold text-gray-800">{mockResults.classAverage}%</p>
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                <Sparkles className="w-5 h-5 text-emerald-600" />
+              </div>
+              <p className="text-xs font-medium text-gray-500 mb-1">Class Avg</p>
+              <p className="font-semibold text-[#0F0E47]">{mockResults.classAverage}%</p>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Question Breakdown */}
       <div>
-        <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+        <h2 className="text-sm font-semibold text-[#0F0E47] mb-4">
           Question Breakdown
         </h2>
         <div className="space-y-4">
-          {mockResults.questions.map((q, index) => (
-            <Card key={q.id} className="bg-white rounded-2xl p-6 shadow-md">
+          {mockResults.questions.map((q: any, index: number) => (
+            <Card key={q.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0">
                   {q.correct ? (
-                    <div className="w-10 h-10 bg-[#43E6B5]/10 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-6 h-6 text-[#43E6B5]" />
+                    <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-6 h-6 text-emerald-600" />
                     </div>
                   ) : (
-                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center">
                       <XCircle className="w-6 h-6 text-red-500" />
                     </div>
                   )}
@@ -185,28 +191,28 @@ export function StudentResults() {
                       <Badge className="bg-gray-100 text-gray-600 rounded-full mb-2">
                         Question {index + 1}
                       </Badge>
-                      <p className="font-semibold text-gray-800 mb-2">{q.question}</p>
+                      <p className="font-semibold text-[#0F0E47] mb-2">{q.question}</p>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div className="bg-gray-50 rounded-xl p-4">
                       <p className="text-sm text-gray-600 mb-1">Your Answer:</p>
-                      <p className="text-gray-800">{q.yourAnswer}</p>
+                      <p className="text-[#0F0E47]">{q.yourAnswer}</p>
                     </div>
 
                     {!q.correct && q.correctAnswer && (
-                      <div className="bg-[#43E6B5]/10 rounded-xl p-4">
-                        <p className="text-sm text-[#43E6B5] mb-1">Correct Answer:</p>
-                        <p className="text-gray-800">{q.correctAnswer}</p>
+                      <div className="bg-emerald-50 rounded-xl p-4">
+                        <p className="text-sm text-emerald-700 mb-1">Correct Answer:</p>
+                        <p className="text-[#0F0E47]">{q.correctAnswer}</p>
                       </div>
                     )}
 
-                    <div className={`${q.correct ? 'bg-[#43E6B5]/10' : 'bg-[#4FC3F7]/10'} rounded-xl p-4`}>
+                    <div className={`${q.correct ? "bg-emerald-50" : "bg-[#EDE9FE]"} rounded-xl p-4`}>
                       <div className="flex items-start gap-2">
-                        <Sparkles className={`w-4 h-4 ${q.correct ? 'text-[#43E6B5]' : 'text-[#4FC3F7]'} mt-0.5`} />
+                        <Sparkles className={`w-4 h-4 ${q.correct ? "text-emerald-600" : "text-[#272757]"} mt-0.5`} />
                         <div>
-                          <p className={`text-sm ${q.correct ? 'text-[#43E6B5]' : 'text-[#4FC3F7]'} font-semibold mb-1`}>
+                          <p className={`text-sm ${q.correct ? "text-emerald-700" : "text-[#272757]"} font-semibold mb-1`}>
                             AI Feedback:
                           </p>
                           <p className="text-gray-700 text-sm">{q.aiFeedback}</p>
@@ -221,17 +227,16 @@ export function StudentResults() {
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="flex gap-4 justify-center mt-8">
         <Button
           onClick={() => navigate("/student")}
-          className="bg-[#6C63FF] hover:bg-[#5851E6] text-white px-8 py-6 rounded-2xl text-lg font-semibold"
+          className="bg-[#272757] hover:bg-[#505081] text-white px-8 py-6 rounded-xl text-lg font-semibold"
         >
           Back to Dashboard
         </Button>
         <Button
           variant="outline"
-          className="border-2 border-[#4FC3F7] text-[#4FC3F7] hover:bg-[#4FC3F7]/10 px-8 py-6 rounded-2xl text-lg font-semibold"
+          className="border border-gray-200 text-[#272757] hover:bg-gray-50 px-8 py-6 rounded-xl text-lg font-semibold"
         >
           Try Again
         </Button>

@@ -131,7 +131,7 @@ export function StudentClasses() {
           {classes.map((cls) => {
             const subjectColor = SUBJECT_COLORS[cls.subject] ?? "#272757";
             return (
-              <Card key={cls.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <Card key={cls.id} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:border-gray-200 hover:shadow transition-all">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="font-bold text-[#0F0E47] text-base mb-1">{cls.name}</h3>
@@ -171,7 +171,7 @@ export function StudentClasses() {
                 <Button
                   onClick={() => navigate(`/student/classes/${cls.id}`)}
                   variant="outline"
-                  className="w-full border border-[#272757] text-[#272757] hover:bg-[#EDE9FE] rounded-xl h-10 text-sm gap-2"
+                  className="w-full border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-10 text-sm gap-2"
                 >
                   View Class <ChevronRight className="w-4 h-4" style={{ strokeWidth: 1.75 }} />
                 </Button>

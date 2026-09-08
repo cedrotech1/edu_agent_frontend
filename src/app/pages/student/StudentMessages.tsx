@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   MessageSquare,
   Send,
   Search,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "../../components/AppShell";
+import { api, ApiError, initials } from "@/lib/api";
 
 interface Message {
   id: number;
@@ -25,30 +28,90 @@ interface Conversation {
   messages: Message[];
 }
 
-const initialConversations: Conversation[] = [
-  {
-    id: 1, name: "Ms. Johnson", initials: "MJ", role: "Teacher",
-    preview: "Focus on mitosis vs meiosis.", time: "5m", unread: 2, avatarBg: "#272757",
-    messages: [
-      { id: 1, sender: "them", text: "Hi Alex, just checking in on your biology quiz prep.", time: "Yesterday 9:00 AM" },
-      { id: 2, sender: "me",   text: "I've been studying the cell division chapter. It's tough!", time: "Yesterday 9:12 AM" },
-      { id: 3, sender: "them", text: "Focus on mitosis vs meiosis. That's usually on the exam.", time: "Yesterday 9:15 AM" },
-    ],
-  },
-  {
-    id: 2, name: "Mr. Smith", initials: "MS", role: "Teacher",
-    preview: "Great work on last week's quiz!", time: "Yesterday", unread: 0, avatarBg: "#505081",
-    messages: [
-      { id: 1, sender: "them", text: "Great work on last week's quiz! Keep it up.", time: "Yesterday" },
-    ],
-  },
-];
+function mapConv(c: any): Conversation {
+  return {
+    id: c.id,
+    name: c.name || "User",
+    initials: c.initials || initials(c.name),
+    role: c.role || "User",
+    preview: c.preview || "",
+    time: c.time || "",
+    unread: Number(c.unread ?? 0),
+    avatarBg: c.avatarBg || "#505081",
+    messages: [],
+  };
+}
 
 export function StudentMessages() {
-  const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [inputText, setInputText] = useState("");
   const [search, setSearch] = useState("");
+  const [loadingList, setLoadingList] = useState(true);
+  const [loadingThread, setLoadingThread] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const loadList = useCallback(async () => {
+    setLoadingList(true);
+    try {
+      const res = await api.messages.list();
+      const rows = (res.data as any[]) || [];
+      setConversations((Array.isArray(rows) ? rows : []).map(mapConv));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to load messages");
+      setConversations([]);
+    } finally {
+      setLoadingList(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadList();
+  }, [loadList]);
+
+  const loadThread = useCallback(async (id: number) => {
+    setLoadingThread(true);
+    try {
+      const res = await api.messages.get(id);
+      const d: any = res.data || {};
+      const msgs = (d.messages || []).map((m: any) => ({
+        id: m.id,
+        sender: m.sender === "me" ? "me" : "them",
+        text: m.text || m.body || "",
+        time: m.time || "",
+      }));
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, messages: msgs, unread: 0 } : c
+        )
+      );
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to load conversation");
+    } finally {
+      setLoadingThread(false);
+    }
+  }, []);
+
+  async function handleSelect(id: number) {
+    setActiveId(id);
+    await loadThread(id);
+  }
+
+  async function handleSend() {
+    const text = inputText.trim();
+    if (!text || activeId === null || sending) return;
+    setSending(true);
+    try {
+      await api.messages.send(activeId, text);
+      setInputText("");
+      await loadThread(activeId);
+      await loadList();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to send message");
+    } finally {
+      setSending(false);
+    }
+  }
 
   const active = activeId !== null ? conversations.find((c) => c.id === activeId) ?? null : null;
 
@@ -56,49 +119,17 @@ export function StudentMessages() {
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  function handleSelect(id: number) {
-    setActiveId(id);
-    setConversations((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, unread: 0 } : c))
-    );
-  }
-
-  function handleSend() {
-    const text = inputText.trim();
-    if (!text || activeId === null) return;
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.id === activeId
-          ? {
-              ...c,
-              preview: text,
-              messages: [
-                ...c.messages,
-                { id: c.messages.length + 1, sender: "me", text, time: "Just now" },
-              ],
-            }
-          : c
-      )
-    );
-    setInputText("");
-  }
-
   return (
-    <AppShell role="student" pending={true} pageTitle="Messages">
-      {/* Two-panel layout */}
+    <AppShell role="student" pageTitle="Messages">
       <div className="-mx-6 -mt-6 flex h-[calc(100vh-64px)]">
-
-        {/* LEFT PANEL */}
         <div
           className="flex flex-col border-r bg-white"
           style={{ width: 300, flexShrink: 0, borderColor: "#E2E8F0" }}
         >
-          {/* Top bar */}
           <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "#E2E8F0" }}>
             <h2 className="text-base font-bold" style={{ color: "#0F0E47" }}>Messages</h2>
           </div>
 
-          {/* Search */}
           <div className="px-3 py-2">
             <div className="flex items-center gap-2 rounded-xl border px-3 py-2" style={{ borderColor: "#E2E8F0" }}>
               <Search size={14} style={{ color: "#8686AC" }} />
@@ -112,59 +143,64 @@ export function StudentMessages() {
             </div>
           </div>
 
-          {/* Conversation list */}
           <div className="flex-1 overflow-y-auto">
-            {filtered.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => handleSelect(c.id)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
-                style={{
-                  background: c.id === activeId ? "#EDE9FE" : undefined,
-                }}
-                onMouseEnter={(e) => {
-                  if (c.id !== activeId) (e.currentTarget as HTMLButtonElement).style.background = "#F8FAFC";
-                }}
-                onMouseLeave={(e) => {
-                  if (c.id !== activeId) (e.currentTarget as HTMLButtonElement).style.background = "";
-                }}
-              >
-                <div
-                  className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                  style={{ background: c.avatarBg }}
+            {loadingList ? (
+              <div className="flex items-center justify-center py-10 text-[#8686AC] gap-2 text-sm">
+                <Loader2 size={16} className="animate-spin" /> Loading…
+              </div>
+            ) : filtered.length === 0 ? (
+              <p className="text-center text-xs text-[#8686AC] py-8 px-4">No conversations yet.</p>
+            ) : (
+              filtered.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => handleSelect(c.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+                  style={{
+                    background: c.id === activeId ? "#EDE9FE" : undefined,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (c.id !== activeId) (e.currentTarget as HTMLButtonElement).style.background = "#F8FAFC";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (c.id !== activeId) (e.currentTarget as HTMLButtonElement).style.background = "";
+                  }}
                 >
-                  {c.initials}
-                </div>
+                  <div
+                    className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                    style={{ background: c.avatarBg }}
+                  >
+                    {c.initials}
+                  </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span
-                      className="text-sm truncate"
-                      style={{
-                        fontWeight: c.unread > 0 ? 600 : 400,
-                        color: "#0F0E47",
-                      }}
-                    >
-                      {c.name}
-                    </span>
-                    <span className="text-[10px] ml-1 flex-shrink-0" style={{ color: "#94A3B8" }}>{c.time}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span
+                        className="text-sm truncate"
+                        style={{
+                          fontWeight: c.unread > 0 ? 600 : 400,
+                          color: "#0F0E47",
+                        }}
+                      >
+                        {c.name}
+                      </span>
+                      <span className="text-[10px] ml-1 flex-shrink-0" style={{ color: "#94A3B8" }}>{c.time}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="text-xs truncate" style={{ color: "#64748B" }}>{c.preview}</span>
+                      {c.unread > 0 && (
+                        <span className="w-2 h-2 rounded-full ml-1 flex-shrink-0" style={{ background: "#272757" }} />
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <span className="text-xs truncate" style={{ color: "#64748B" }}>{c.preview}</span>
-                    {c.unread > 0 && (
-                      <span className="w-2 h-2 rounded-full ml-1 flex-shrink-0" style={{ background: "#272757" }} />
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))
+            )}
           </div>
         </div>
 
-        {/* RIGHT PANEL */}
         <div className="flex flex-1 flex-col overflow-hidden">
           {active === null ? (
-            /* Empty state */
             <div className="flex flex-1 flex-col items-center justify-center gap-3" style={{ background: "#F8FAFC" }}>
               <MessageSquare size={48} style={{ color: "#8686AC" }} />
               <p className="font-semibold text-base" style={{ color: "#0F0E47" }}>No messages yet.</p>
@@ -172,7 +208,6 @@ export function StudentMessages() {
             </div>
           ) : (
             <>
-              {/* Header */}
               <div className="flex items-center gap-3 px-5 py-3 bg-white border-b" style={{ borderColor: "#E2E8F0" }}>
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
@@ -191,9 +226,12 @@ export function StudentMessages() {
                 </div>
               </div>
 
-              {/* Message thread */}
               <div className="flex-1 overflow-y-auto p-5 space-y-3" style={{ background: "#F8FAFC" }}>
-                {active.messages.length === 0 ? (
+                {loadingThread ? (
+                  <div className="flex items-center justify-center h-full gap-2 text-[#8686AC] text-sm">
+                    <Loader2 size={16} className="animate-spin" /> Loading messages…
+                  </div>
+                ) : active.messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full gap-3">
                     <MessageSquare size={48} style={{ color: "#8686AC" }} />
                     <p className="font-semibold text-base" style={{ color: "#0F0E47" }}>No messages yet.</p>
@@ -227,7 +265,6 @@ export function StudentMessages() {
                 )}
               </div>
 
-              {/* Input bar */}
               <div className="flex gap-2 px-4 py-3 bg-white border-t" style={{ borderColor: "#E2E8F0" }}>
                 <input
                   className="flex-1 rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors"
@@ -241,7 +278,8 @@ export function StudentMessages() {
                 />
                 <button
                   onClick={handleSend}
-                  className="flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                  disabled={sending}
+                  className="flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60"
                   style={{ background: "#272757" }}
                   onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#1A1952")}
                   onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#272757")}

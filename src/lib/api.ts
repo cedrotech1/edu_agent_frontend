@@ -15,8 +15,38 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   school?: string | null;
+  schools?: Array<{ id: number; name: string; location?: string | null; isPrimary?: boolean }>;
+  phone?: string | null;
   image?: string | null;
   active?: number | boolean;
+}
+
+/** Normalize API / localStorage user shapes (`names` → `name`, etc.) */
+export function normalizeAuthUser(raw: any): AuthUser | null {
+  if (!raw || typeof raw !== "object") return null;
+  const id = Number(raw.id);
+  if (!Number.isFinite(id)) return null;
+  const name =
+    (typeof raw.name === "string" && raw.name) ||
+    (typeof raw.names === "string" && raw.names) ||
+    "";
+  const email = typeof raw.email === "string" ? raw.email : "";
+  const role = raw.role as UserRole;
+  if (!email || !role) return null;
+  return {
+    id,
+    name,
+    email,
+    role,
+    school:
+      (typeof raw.school === "string" && raw.school) ||
+      (typeof raw.institution === "string" && raw.institution) ||
+      null,
+    schools: Array.isArray(raw.schools) ? raw.schools : [],
+    phone: typeof raw.phone === "string" ? raw.phone : null,
+    image: raw.image ?? null,
+    active: raw.active,
+  };
 }
 
 export class ApiError extends Error {
@@ -53,14 +83,17 @@ export function getStoredUser(): AuthUser | null {
   try {
     const raw = localStorage.getItem(USER_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as AuthUser;
+    return normalizeAuthUser(JSON.parse(raw));
   } catch {
     return null;
   }
 }
 
 export function setStoredUser(user: AuthUser) {
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  const normalized = normalizeAuthUser(user);
+  if (normalized) {
+    localStorage.setItem(USER_KEY, JSON.stringify(normalized));
+  }
 }
 
 export function clearStoredUser() {
@@ -156,6 +189,7 @@ interface DataResponse<T = unknown> {
   success: boolean;
   data: T;
   message?: string;
+  warning?: string;
 }
 
 export const api = {
@@ -172,6 +206,8 @@ export const api = {
       password: string;
       institution?: string;
       school?: string;
+      schoolIds: number[];
+      primarySchoolId?: number;
       role: UserRole;
     }) =>
       apiRequest<{ success: boolean; message?: string }>("/auth/register", {
@@ -183,6 +219,8 @@ export const api = {
           password: payload.password,
           institution: payload.institution ?? payload.school,
           school: payload.school ?? payload.institution,
+          schoolIds: payload.schoolIds,
+          primarySchoolId: payload.primarySchoolId,
           role: payload.role,
         },
       }),
@@ -201,6 +239,12 @@ export const api = {
         auth: false,
         body: { email },
       }),
+    forgotPassword: (email: string) =>
+      apiRequest<{ success: boolean; message?: string }>("/auth/forgot-password", {
+        method: "POST",
+        auth: false,
+        body: { email },
+      }),
   },
 
   classes: {
@@ -210,6 +254,7 @@ export const api = {
       subject: string;
       educationLevel: string;
       subLevel: string;
+      schoolId: number;
     }) => apiRequest<DataResponse>("/classes", { method: "POST", body }),
     get: (classId: string | number) =>
       apiRequest<DataResponse>(`/classes/${classId}`),
@@ -227,9 +272,10 @@ export const api = {
       const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : "";
       return apiRequest<DataResponse>(`/quizzes${q}`);
     },
-    get: (id: string | number) => apiRequest<DataResponse>(`/quizzes/${id}`),
     create: (body: unknown) =>
       apiRequest<DataResponse>("/quizzes", { method: "POST", body }),
+    update: (id: string | number, body: unknown) =>
+      apiRequest<DataResponse>(`/quizzes/${id}`, { method: "PATCH", body }),
     generate: (body: {
       topic: string;
       subject: string;
@@ -237,13 +283,23 @@ export const api = {
       subLevel?: string;
       numQuestions?: number | string;
       questionType?: string;
+      description?: string;
     }) =>
       apiRequest<DataResponse>("/quizzes/generate", { method: "POST", body }),
     byCode: (code: string) =>
       apiRequest<DataResponse>(`/quizzes/by-code/${encodeURIComponent(code)}`),
+    get: (id: string | number, opts?: { accessCode?: string }) => {
+      const code = opts?.accessCode?.trim();
+      const q = code ? `?code=${encodeURIComponent(code)}` : "";
+      return apiRequest<DataResponse>(`/quizzes/${id}${q}`);
+    },
     submit: (
       id: string | number,
-      body: { answers: Record<string | number, unknown>; timeTakenSeconds?: number }
+      body: {
+        answers: Record<string | number, unknown>;
+        timeTakenSeconds?: number;
+        accessCode?: string;
+      }
     ) =>
       apiRequest<DataResponse>(`/quizzes/${id}/submissions`, {
         method: "POST",
@@ -251,6 +307,29 @@ export const api = {
       }),
     results: (id: string | number) =>
       apiRequest<DataResponse>(`/quizzes/${id}/results`),
+    exportResults: async (id: string | number) => {
+      const token = getToken();
+      const res = await fetch(
+        `${API_BASE}/quizzes/${id}/results/export`,
+        {
+          headers: {
+            Accept: "text/csv",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+      if (!res.ok) {
+        const text = await res.text();
+        let message = "Export failed";
+        try {
+          message = JSON.parse(text)?.message || message;
+        } catch {
+          if (text) message = text;
+        }
+        throw new ApiError(message, res.status);
+      }
+      return res.blob();
+    },
     flagged: (id: string | number) =>
       apiRequest<DataResponse>(`/quizzes/${id}/flagged`),
     acceptAnswer: (answerId: string | number) =>
@@ -268,6 +347,8 @@ export const api = {
       apiRequest<DataResponse>("/quizzes/student/completed"),
     studentResults: (id: string | number) =>
       apiRequest<DataResponse>(`/quizzes/student/${id}/results`),
+    submissionDetail: (submissionId: string | number) =>
+      apiRequest<DataResponse>(`/quizzes/submissions/${submissionId}`),
   },
 
   users: {
@@ -293,6 +374,8 @@ export const api = {
         body: { status },
       }),
     deleteMe: () => apiRequest<DataResponse>("/users/me", { method: "DELETE" }),
+    search: (q: string) =>
+      apiRequest<DataResponse>(`/users/search?q=${encodeURIComponent(q)}`),
     changePassword: (body: {
       oldPassword?: string;
       currentPassword?: string;
@@ -329,6 +412,11 @@ export const api = {
   admin: {
     stats: () => apiRequest<DataResponse>("/admin/stats"),
     activity: () => apiRequest<DataResponse>("/admin/activity"),
+    analytics: (range?: string) => {
+      const q = range ? `?range=${encodeURIComponent(range)}` : "";
+      return apiRequest<DataResponse>(`/admin/analytics${q}`);
+    },
+    health: () => apiRequest<DataResponse>("/admin/health"),
     quizzes: () => apiRequest<DataResponse>("/admin/quizzes"),
     flagQuiz: (id: string | number, flagged: boolean) =>
       apiRequest<DataResponse>(`/admin/quizzes/${id}/flag`, {
@@ -348,8 +436,73 @@ export const api = {
         method: "PATCH",
         body,
       }),
-    subscription: () => apiRequest<DataResponse>("/admin/subscription"),
-    billing: () => apiRequest<DataResponse>("/admin/billing"),
+    messages: {
+      list: () => apiRequest<DataResponse>("/admin/messages"),
+      get: (id: string | number) => apiRequest<DataResponse>(`/admin/messages/${id}`),
+      flag: (id: string | number, flagged = true) =>
+        apiRequest<DataResponse>(`/admin/messages/${id}/flag`, {
+          method: "PATCH",
+          body: { flagged },
+        }),
+    },
+    schools: {
+      list: () => apiRequest<DataResponse>("/admin/schools"),
+      hub: () => apiRequest<DataResponse>("/admin/schools/hub"),
+      create: (body: { name: string; location?: string }) =>
+        apiRequest<DataResponse>("/admin/schools", { method: "POST", body }),
+      update: (id: string | number, body: Record<string, unknown>) =>
+        apiRequest<DataResponse>(`/admin/schools/${id}`, { method: "PATCH", body }),
+      roster: (id: string | number) =>
+        apiRequest<DataResponse>(`/admin/schools/${id}/roster`),
+    },
+    announcements: {
+      list: () => apiRequest<DataResponse>("/admin/announcements"),
+      create: (body: Record<string, unknown>) =>
+        apiRequest<DataResponse>("/admin/announcements", { method: "POST", body }),
+      send: (id: string | number) =>
+        apiRequest<DataResponse>(`/admin/announcements/${id}/send`, { method: "POST" }),
+    },
+  },
+
+  messages: {
+    list: () => apiRequest<DataResponse>("/conversations"),
+    get: (id: string | number) => apiRequest<DataResponse>(`/conversations/${id}`),
+    send: (id: string | number, body: string) =>
+      apiRequest<DataResponse>(`/conversations/${id}/messages`, {
+        method: "POST",
+        body: { body },
+      }),
+    start: (recipientId: number, body?: string) =>
+      apiRequest<DataResponse>("/conversations", {
+        method: "POST",
+        body: { recipientId, body },
+      }),
+    broadcast: (classId: number, body: string) =>
+      apiRequest<DataResponse>("/broadcast", {
+        method: "POST",
+        body: { classId, body },
+      }),
+  },
+
+  progress: {
+    me: () => apiRequest<DataResponse>("/progress"),
+  },
+
+  schools: {
+    public: () =>
+      apiRequest<DataResponse>("/schools/public", { auth: false }),
+    mine: () => apiRequest<DataResponse>("/me/schools"),
+    updateMine: (schoolIds: number[], primarySchoolId?: number) =>
+      apiRequest<DataResponse>("/me/schools", {
+        method: "PUT",
+        body: { schoolIds, primarySchoolId },
+      }),
+  },
+
+  announcements: {
+    list: () => apiRequest<DataResponse>("/announcements"),
+    create: (body: Record<string, unknown>) =>
+      apiRequest<DataResponse>("/announcements", { method: "POST", body }),
   },
 
   chat: {

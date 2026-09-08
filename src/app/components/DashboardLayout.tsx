@@ -18,7 +18,7 @@ export interface NavItem {
 
 interface DashboardLayoutProps {
   navItems: NavItem[];
-  role: "teacher" | "student" | "admin" | "parent";
+  role: "teacher" | "student" | "admin";
   pageTitle: string;
   pending?: boolean;
   userName: string;
@@ -31,7 +31,6 @@ const roleStyle = {
   teacher: { avatarBg: "bg-[#272757]",  badgeCls: "bg-[#EDE9FE] text-[#BFDBFE]"  },
   student: { avatarBg: "bg-[#505081]",  badgeCls: "bg-[#505081]/30 text-white"  },
   admin:   { avatarBg: "bg-[#8686AC]",  badgeCls: "bg-[#8686AC]/30 text-white"  },
-  parent:  { avatarBg: "bg-[#272757]",  badgeCls: "bg-[#272757]/30 text-white"  },
 };
 
 export function DashboardLayout({
@@ -101,9 +100,6 @@ export function DashboardLayout({
 
     // Exact match
     if (loc === base) return true;
-
-    // For the parent role, prevent /parent matching /parent/xxx
-    // (handled by the roleBase check above)
 
     // Current location is a sub-path of this nav item's base
     // e.g. loc=/teacher/classes/s3-bio matches base=/teacher/classes
@@ -177,7 +173,7 @@ export function DashboardLayout({
                     onClick={() => {
                       if (path) { navigate(path); setMobileOpen(false); }
                       else if (label === "Notifications") {
-                        const notifPath = role === "teacher" ? "/teacher/notifications" : role === "student" ? "/student/notifications" : role === "parent" ? "/parent/notifications" : "/admin/notifications";
+                        const notifPath = role === "teacher" ? "/teacher/notifications" : role === "student" ? "/student/notifications" : "/admin/notifications";
                         navigate(notifPath); setMobileOpen(false);
                       }
                       else toast.info(`${label} — coming soon`);
@@ -278,14 +274,24 @@ export function DashboardLayout({
 
           <div className="flex-1" />
 
-          {/* Search */}
+          {/* Search — only submit on Enter (not onChange) to avoid autofill hijacking */}
           <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8686AC] pointer-events-none" style={{ strokeWidth: 1.75 }} />
             <input
+              type="search"
+              name="dashboard-search"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
               placeholder="Search…"
               className="pl-9 pr-4 h-[38px] rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] text-sm focus:outline-none focus:ring-2 focus:ring-[#272757]/20 focus:border-[#272757] w-48 transition-all font-[Poppins] text-[#0F0E47]"
-              onChange={e => { if (e.target.value.length >= 3) navigate(`/search?q=${encodeURIComponent(e.target.value)}`); }}
-              onKeyDown={e => { if (e.key === 'Enter') { const v = (e.target as HTMLInputElement).value; if (v.length >= 3) navigate(`/search?q=${encodeURIComponent(v)}`); } }}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                const v = (e.target as HTMLInputElement).value.trim();
+                if (v.length >= 3) navigate(`/search?q=${encodeURIComponent(v)}`);
+              }}
             />
           </div>
 
@@ -302,7 +308,7 @@ export function DashboardLayout({
           <div className="relative">
             <button
               onClick={() => {
-                const notifPath = role === "teacher" ? "/teacher/notifications" : role === "student" ? "/student/notifications" : role === "parent" ? "/parent/notifications" : "/admin/notifications";
+                const notifPath = role === "teacher" ? "/teacher/notifications" : role === "student" ? "/student/notifications" : "/admin/notifications";
                 navigate(notifPath);
               }}
               className="relative w-9 h-9 flex items-center justify-center rounded-xl text-[#64748B] hover:bg-[#EDE9FE] hover:text-[#272757] transition-colors"

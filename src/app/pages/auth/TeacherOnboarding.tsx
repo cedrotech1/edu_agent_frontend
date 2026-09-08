@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
@@ -26,9 +26,9 @@ function generateCode() {
 }
 
 const steps = [
-  { icon: Users, label: "Create your first class", color: "#6C63FF" },
-  { icon: BookOpen, label: "Create your first quiz", color: "#4FC3F7" },
-  { icon: Sparkles, label: "Invite students", color: "#43E6B5" },
+  { icon: Users, label: "Create your first class", color: "#272757" },
+  { icon: BookOpen, label: "Create your first quiz", color: "#272757" },
+  { icon: Sparkles, label: "Invite students", color: "#10B981" },
 ];
 
 export function TeacherOnboarding() {
@@ -42,6 +42,21 @@ export function TeacherOnboarding() {
   const [copied, setCopied] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [creating, setCreating] = useState(false);
+  const [schoolId, setSchoolId] = useState("");
+  const [mySchools, setMySchools] = useState<Array<{ id: number; name: string }>>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.schools.mine();
+        const rows = ((res.data as any[]) || []).map((s: any) => ({ id: s.id, name: s.name }));
+        setMySchools(rows);
+        if (rows[0]) setSchoolId(String(rows[0].id));
+      } catch {
+        setMySchools([]);
+      }
+    })();
+  }, []);
 
   const copyCode = () => {
     navigator.clipboard.writeText(classCode);
@@ -55,6 +70,7 @@ export function TeacherOnboarding() {
     if (!subject.trim()) e.subject = "Subject is required";
     if (!educationLevel) e.educationLevel = "Please select a grade level";
     if (!subLevel) e.subLevel = "Please select a sub-level";
+    if (!schoolId) e.schoolId = "Please select a school";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -69,6 +85,7 @@ export function TeacherOnboarding() {
           subject,
           educationLevel,
           subLevel,
+          schoolId: Number(schoolId),
         });
         const created: any = res.data || {};
         setClassCode(created.code || generateCode());
@@ -86,7 +103,7 @@ export function TeacherOnboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F9F9FF] via-[#E8E7FF] to-[#D9F5FF] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
       <div className="w-full max-w-xl">
         <div className="flex justify-center mb-8">
           <Logo variant="horizontal" size="md" />
@@ -99,35 +116,52 @@ export function TeacherOnboarding() {
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                   i < step
-                    ? "bg-[#43E6B5] text-white"
+                    ? "bg-[#10B981] text-white"
                     : i === step
-                    ? "bg-[#6C63FF] text-white"
+                    ? "bg-[#272757] text-white"
                     : "bg-gray-200 text-gray-500"
                 }`}
               >
                 {i < step ? <CheckCircle className="w-5 h-5" /> : i + 1}
               </div>
               {i < steps.length - 1 && (
-                <div className={`w-10 h-1 rounded-full ${i < step ? "bg-[#43E6B5]" : "bg-gray-200"}`} />
+                <div className={`w-10 h-1 rounded-full ${i < step ? "bg-[#10B981]" : "bg-gray-200"}`} />
               )}
             </div>
           ))}
         </div>
 
-        <Card className="bg-white rounded-3xl shadow-2xl p-8">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
           {step === 0 && (
             <div>
               <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-[#6C63FF]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-[#6C63FF]" />
+                <div className="w-16 h-16 bg-[#272757]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-8 h-8 text-[#272757]" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Create your first class</h2>
                 <p className="text-gray-600">Set up a class and students can join with a code</p>
               </div>
 
               <div className="space-y-5">
-                <div>
-                  <Label className="mb-2 block text-gray-700">Class Name</Label>
+                  <div>
+                    <Label className="mb-2 block text-gray-700">School</Label>
+                    <Select value={schoolId} onValueChange={(v) => { setSchoolId(v); setErrors((p) => ({ ...p, schoolId: "" })); }}>
+                      <SelectTrigger className={`rounded-xl border-2 ${errors.schoolId ? "border-red-400" : "border-gray-200"}`}>
+                        <SelectValue placeholder="Select school" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mySchools.map((s) => (
+                          <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.schoolId && <p className="text-red-500 text-sm mt-1">{errors.schoolId}</p>}
+                    {mySchools.length === 0 && (
+                      <p className="text-amber-600 text-sm mt-1">No schools on your account yet.</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-gray-700">Class Name</Label>
                   <Input
                     value={className}
                     onChange={(e) => { setClassName(e.target.value); setErrors((p) => ({ ...p, className: "" })); }}
@@ -185,24 +219,24 @@ export function TeacherOnboarding() {
 
           {step === 1 && (
             <div className="text-center">
-              <div className="w-16 h-16 bg-[#4FC3F7]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-8 h-8 text-[#4FC3F7]" />
+              <div className="w-16 h-16 bg-[#272757]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <BookOpen className="w-8 h-8 text-[#272757]" />
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Create your first quiz</h2>
               <p className="text-gray-600 mb-8">
-                Use our AI to generate a quiz for <span className="font-semibold text-[#6C63FF]">{className}</span> in seconds
+                Use our AI to generate a quiz for <span className="font-semibold text-[#272757]">{className}</span> in seconds
               </p>
-              <div className="bg-[#6C63FF]/5 rounded-2xl p-6 mb-6 text-left space-y-3">
+              <div className="bg-[#272757]/5 rounded-2xl p-6 mb-6 text-left space-y-3">
                 <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-[#43E6B5]" />
+                  <CheckCircle className="w-5 h-5 text-[#10B981]" />
                   <span className="text-gray-700">Pick a topic and grade level</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-[#43E6B5]" />
+                  <CheckCircle className="w-5 h-5 text-[#10B981]" />
                   <span className="text-gray-700">AI generates questions instantly</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-[#43E6B5]" />
+                  <CheckCircle className="w-5 h-5 text-[#10B981]" />
                   <span className="text-gray-700">Review, edit, then publish</span>
                 </div>
               </div>
@@ -211,34 +245,34 @@ export function TeacherOnboarding() {
 
           {step === 2 && (
             <div className="text-center">
-              <div className="w-16 h-16 bg-[#43E6B5]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-8 h-8 text-[#43E6B5]" />
+              <div className="w-16 h-16 bg-[#10B981]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-[#10B981]" />
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Invite your students</h2>
               <p className="text-gray-600 mb-8">
-                Share this join code with students in <span className="font-semibold text-[#6C63FF]">{className}</span>
+                Share this join code with students in <span className="font-semibold text-[#272757]">{className}</span>
               </p>
-              <div className="bg-[#6C63FF]/5 border-2 border-[#6C63FF]/20 rounded-2xl p-6 mb-6">
+              <div className="bg-[#272757]/5 border-2 border-[#272757]/20 rounded-2xl p-6 mb-6">
                 <p className="text-sm text-gray-600 mb-3">Class join code</p>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-white rounded-xl px-5 py-4 font-mono text-2xl font-bold text-[#6C63FF] tracking-widest border-2 border-[#6C63FF]/20">
+                  <div className="flex-1 bg-white rounded-xl px-5 py-4 font-mono text-2xl font-bold text-[#272757] tracking-widest border-2 border-[#272757]/20">
                     {classCode}
                   </div>
                   <Button
                     onClick={copyCode}
-                    className={`px-4 py-4 rounded-xl transition-all ${copied ? "bg-[#43E6B5] text-white" : "bg-[#6C63FF] text-white hover:bg-[#5851E6]"}`}
+                    className={`px-4 py-4 rounded-xl transition-all ${copied ? "bg-[#10B981] text-white" : "bg-[#272757] text-white hover:bg-[#505081]"}`}
                   >
                     {copied ? <CheckCircle className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
                   </Button>
                 </div>
-                {copied && <p className="text-[#43E6B5] text-sm mt-3 font-medium">Copied to clipboard!</p>}
+                {copied && <p className="text-[#10B981] text-sm mt-3 font-medium">Copied to clipboard!</p>}
               </div>
             </div>
           )}
 
           <Button
             onClick={handleNext}
-            className="w-full mt-8 bg-[#6C63FF] hover:bg-[#5851E6] text-white py-6 rounded-2xl text-lg font-semibold shadow-lg flex items-center justify-center gap-2"
+            className="w-full mt-8 bg-[#272757] hover:bg-[#505081] text-white py-6 rounded-2xl text-lg font-semibold shadow-lg flex items-center justify-center gap-2"
           >
             {step === 2 ? "Go to Quiz Builder ✨" : "Next"}
             <ArrowRight className="w-5 h-5" />

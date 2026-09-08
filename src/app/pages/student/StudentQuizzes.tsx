@@ -57,6 +57,8 @@ export function StudentQuizzes() {
   const [search, setSearch] = useState("");
   const [quizzes, setQuizzes] = useState<StudentQuiz[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quizCode, setQuizCode] = useState("");
+  const [joiningCode, setJoiningCode] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -113,8 +115,57 @@ export function StudentQuizzes() {
   const getCount = (tab: FilterTab) =>
     tab === "all" ? quizzes.length : quizzes.filter((q) => q.status === tab).length;
 
+  const unlockWithQuizCode = async () => {
+    const code = quizCode.trim().toUpperCase();
+    if (!code) {
+      toast.error("Enter a quiz code (QZ-…)");
+      return;
+    }
+    if (code.startsWith("QMIND")) {
+      toast.message("Use My Classes or the dashboard to join a class with QMIND codes.");
+      return;
+    }
+    setJoiningCode(true);
+    try {
+      const res = await api.quizzes.byCode(code);
+      const quiz = res.data as { id: number; accessCode?: string };
+      const { rememberQuizAccessCode } = await import("@/lib/quizAccess");
+      rememberQuizAccessCode(quiz.id, quiz.accessCode || code);
+      toast.success("Quiz unlocked with join code");
+      setQuizCode("");
+      navigate(`/student/quiz/${quiz.id}/lobby`);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Invalid quiz code");
+    } finally {
+      setJoiningCode(false);
+    }
+  };
+
   return (
     <AppShell role="student" pageTitle="My Quizzes">
+      <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-5">
+        <p className="text-sm font-semibold text-[#0F0E47] mb-1">Quizzes from your classes</p>
+        <p className="text-xs text-gray-500 mb-3">
+          Assigned class quizzes appear below—no code needed. Use a quiz code (QZ-…) only if you are not in that class.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input
+            value={quizCode}
+            onChange={(e) => setQuizCode(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && unlockWithQuizCode()}
+            placeholder="QZ-1234"
+            className="font-mono uppercase qm-input flex-1"
+          />
+          <Button
+            onClick={unlockWithQuizCode}
+            disabled={joiningCode}
+            className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl"
+          >
+            {joiningCode ? "Unlocking…" : "Unlock with code"}
+          </Button>
+        </div>
+      </Card>
+
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         {TABS.map(({ value, label }) => (
           <button
@@ -157,8 +208,8 @@ export function StudentQuizzes() {
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center">
             <ClipboardList className="w-12 h-12 text-gray-200 mx-auto mb-3" style={{ strokeWidth: 1.75 }} />
-            <p className="font-semibold text-gray-400 mb-1">No quizzes assigned yet</p>
-            <p className="text-sm text-gray-300">Join a class to get started</p>
+            <p className="font-semibold text-gray-400 mb-1">No quizzes from your classes</p>
+            <p className="text-sm text-gray-300">Join a class, or unlock a shared quiz with a QZ- code above</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -202,7 +253,7 @@ export function StudentQuizzes() {
                           <Button
                             onClick={() => navigate(`/student/results/${q.id}`)}
                             variant="outline"
-                            className="border border-[#10B981] text-[#10B981] hover:bg-[#10B981]/10 rounded-xl h-8 px-3 text-xs gap-1.5"
+                            className="border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-8 px-3 text-xs gap-1.5"
                           >
                             <Eye className="w-3 h-3" style={{ strokeWidth: 1.75 }} /> View Results
                           </Button>

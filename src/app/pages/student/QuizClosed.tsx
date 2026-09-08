@@ -7,8 +7,8 @@ export function QuizClosed() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#E8E7FF] to-[#D9F5FF] flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-8 text-center">
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center">
         <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <Lock className="w-12 h-12 text-red-500" />
         </div>

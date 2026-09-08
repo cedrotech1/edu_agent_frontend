@@ -11,17 +11,26 @@ import { toast } from "sonner";
 import { AppShell } from "../../components/AppShell";
 import { api, ApiError } from "@/lib/api";
 
+function formatActivityTime(raw: string) {
+  if (!raw) return "";
+  const d = new Date(raw);
+  if (!Number.isNaN(d.getTime()) && /^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    return d.toLocaleString();
+  }
+  return raw;
+}
+
 const defaultActivity = [
-  { id: 1, type: "quiz", icon: BookOpen, color: "bg-[#6C63FF]/10 text-[#6C63FF]", message: "Ms. Johnson created 'S3 Biology Quiz 2'", time: "5 min ago" },
+  { id: 1, type: "quiz", icon: BookOpen, color: "bg-[#EDE9FE] text-[#272757]", message: "Ms. Johnson created 'S3 Biology Quiz 2'", time: "5 min ago" },
   { id: 2, type: "flag", icon: Flag, color: "bg-red-50 text-red-500", message: "Quiz 'Physics Chapter 3' flagged for suspicious activity", time: "1 hour ago" },
-  { id: 3, type: "signup", icon: UserPlus, color: "bg-[#43E6B5]/10 text-[#43E6B5]", message: "New teacher registered: Dr. Mukama from INES Ruhengeri", time: "2 hours ago" },
+  { id: 3, type: "signup", icon: UserPlus, color: "bg-emerald-50 text-emerald-600", message: "New teacher registered: Dr. Mukama from INES Ruhengeri", time: "2 hours ago" },
 ];
 
 const quickLinks = [
-  { label: "User Management", icon: Users, color: "bg-[#6C63FF]", path: "/admin/users", desc: "Manage teachers & students" },
-  { label: "Quiz Oversight", icon: BookOpen, color: "bg-[#4FC3F7]", path: "/admin/quiz-oversight", desc: "Monitor all platform quizzes" },
-  { label: "AI Grading Logs", icon: Sparkles, color: "bg-[#43E6B5]", path: "/admin/grading-logs", desc: "Review AI grades & overrides" },
-  { label: "Platform Settings", icon: Settings, color: "bg-[#FFD166]", path: "/admin/platform-settings", desc: "Configure platform options" },
+  { label: "User Management", icon: Users, iconBg: "bg-[#EDE9FE]", iconColor: "text-[#272757]", path: "/admin/users", desc: "Manage teachers & students" },
+  { label: "Quiz Oversight", icon: BookOpen, iconBg: "bg-gray-50", iconColor: "text-[#272757]", path: "/admin/quiz-oversight", desc: "Monitor all platform quizzes" },
+  { label: "AI Grading Logs", icon: Sparkles, iconBg: "bg-emerald-50", iconColor: "text-emerald-600", path: "/admin/grading-logs", desc: "Review AI grades & overrides" },
+  { label: "Platform Settings", icon: Settings, iconBg: "bg-amber-50", iconColor: "text-amber-600", path: "/admin/platform-settings", desc: "Configure platform options" },
 ];
 
 export function AdminDashboard() {
@@ -36,22 +45,43 @@ export function AdminDashboard() {
       try {
         const [sRes, aRes] = await Promise.all([api.admin.stats(), api.admin.activity()]);
         const s: any = sRes.data || {};
+        const teachers = Number(
+          s.users?.teachers ?? s.teachers ?? s.totalTeachers ?? 0
+        );
+        const students = Number(
+          s.users?.students ?? s.students ?? s.totalStudents ?? 0
+        );
+        const quizzes = Number(
+          typeof s.quizzes === "object" && s.quizzes != null
+            ? s.quizzes.total ?? s.quizzes.active ?? 0
+            : s.quizzes ?? s.totalQuizzes ?? 0
+        );
+        const aiGradingsToday = Number(
+          s.aiGradingsToday ??
+            s.gradingsToday ??
+            s.flaggedAnswers ??
+            0
+        );
         setStats({
-          teachers: s.teachers ?? s.totalTeachers ?? 0,
-          students: s.students ?? s.totalStudents ?? 0,
-          quizzes: s.quizzes ?? s.totalQuizzes ?? 0,
-          aiGradingsToday: s.aiGradingsToday ?? s.gradingsToday ?? 0,
+          teachers,
+          students,
+          quizzes,
+          aiGradingsToday,
         });
-        const acts = (aRes.data as any[]) || [];
-        if (Array.isArray(acts) && acts.length) {
+        const acts = Array.isArray(aRes.data)
+          ? (aRes.data as any[])
+          : Array.isArray((aRes.data as any)?.activity)
+            ? (aRes.data as any).activity
+            : [];
+        if (acts.length) {
           setActivity(
             acts.map((a: any, i: number) => ({
               id: a.id || i,
               type: a.type || "quiz",
               icon: a.type === "flag" ? Flag : a.type === "signup" ? UserPlus : BookOpen,
-              color: a.color || "bg-[#6C63FF]/10 text-[#6C63FF]",
+              color: a.color || "bg-[#EDE9FE] text-[#272757]",
               message: a.message || a.text || "",
-              time: a.time || a.createdAt || "",
+              time: formatActivityTime(a.time || a.at || a.createdAt || ""),
             }))
           );
         }
@@ -63,24 +93,28 @@ export function AdminDashboard() {
     })();
   }, []);
 
+  const statCards = [
+    { label: "Total Teachers", value: loading ? "…" : String(stats.teachers), icon: BookOpen, iconBg: "bg-[#EDE9FE]", iconColor: "text-[#272757]" },
+    { label: "Total Students", value: loading ? "…" : String(stats.students), icon: Users, iconBg: "bg-gray-50", iconColor: "text-[#272757]" },
+    { label: "Total Quizzes", value: loading ? "…" : String(stats.quizzes), icon: Shield, iconBg: "bg-emerald-50", iconColor: "text-emerald-600" },
+    { label: "AI Gradings Today", value: loading ? "…" : String(stats.aiGradingsToday), icon: Activity, iconBg: "bg-amber-50", iconColor: "text-amber-600" },
+  ];
+
   return (
     <AppShell role="admin" pageTitle="Dashboard">
       {loading && <p className="text-gray-500 mb-4">Loading…</p>}
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-8">
-        {[
-          { label: "Total Teachers", value: String(stats.teachers), icon: BookOpen, gradient: "from-[#6C63FF] to-[#5851E6]" },
-          { label: "Total Students", value: String(stats.students), icon: Users, gradient: "from-[#4FC3F7] to-[#29B5E8]" },
-          { label: "Total Quizzes", value: String(stats.quizzes), icon: Shield, gradient: "from-[#43E6B5] to-[#2DD49E]" },
-          { label: "AI Gradings Today", value: String(stats.aiGradingsToday), icon: Activity, gradient: "from-[#FFD166] to-[#FFB830]" },
-        ].map(({ label, value, icon: Icon, gradient }) => (
-          <Card key={label} className={`bg-gradient-to-br ${gradient} text-white rounded-3xl p-6 shadow-lg`}>
-            <div className="flex items-center justify-between">
+        {statCards.map(({ label, value, icon: Icon, iconBg, iconColor }) => (
+          <Card key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-white/80 text-sm mb-1">{label}</p>
-                <h3 className="text-4xl font-bold">{value}</h3>
+                <p className="text-xs font-medium text-gray-500 mb-2">{label}</p>
+                <p className="text-3xl font-semibold text-[#0F0E47] tracking-tight">{value}</p>
               </div>
-              <Icon className="w-10 h-10 text-white/40" />
+              <div className={`w-10 h-10 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
+                <Icon className={`w-[18px] h-[18px] ${iconColor}`} strokeWidth={1.75} />
+              </div>
             </div>
           </Card>
         ))}
@@ -89,41 +123,43 @@ export function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Quick links */}
         <div className="lg:col-span-1">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Admin Sections</h2>
+          <h2 className="text-sm font-semibold text-[#0F0E47] mb-4">Admin Sections</h2>
           <div className="space-y-3">
-            {quickLinks.map(({ label, icon: Icon, color, path, desc }) => (
+            {quickLinks.map(({ label, icon: Icon, iconBg, iconColor, path, desc }) => (
               <button
                 key={path}
                 onClick={() => navigate(path)}
-                className="w-full bg-white rounded-2xl p-5 shadow-md hover:shadow-lg transition-all text-left flex items-center gap-4 group border-2 border-transparent hover:border-gray-200"
+                className="w-full bg-white rounded-xl p-4 shadow-sm hover:shadow transition-all text-left flex items-center gap-4 group border border-gray-100 hover:border-gray-200"
               >
-                <div className={`w-12 h-12 ${color} rounded-2xl flex items-center justify-center shrink-0`}>
-                  <Icon className="w-6 h-6 text-white" />
+                <div className={`w-10 h-10 ${iconBg} rounded-lg flex items-center justify-center shrink-0`}>
+                  <Icon className={`w-5 h-5 ${iconColor}`} strokeWidth={1.75} />
                 </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-800 group-hover:text-[#6C63FF] transition-colors">{label}</p>
-                  <p className="text-sm text-gray-500">{desc}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-[#0F0E47] group-hover:text-[#272757] transition-colors text-sm">{label}</p>
+                  <p className="text-xs text-gray-500">{desc}</p>
                 </div>
-                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-[#6C63FF] transition-colors" />
+                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#272757] transition-colors shrink-0" />
               </button>
             ))}
           </div>
 
           {/* Platform health */}
-          <Card className="bg-white rounded-2xl p-5 shadow-md mt-5">
-            <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#43E6B5]" /> Platform Health
-            </h3>
-            <div className="space-y-3">
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm mt-5 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="text-sm font-semibold text-[#0F0E47] flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-600" /> Platform Health
+              </h3>
+            </div>
+            <div className="p-5 space-y-3">
               {[
-                { label: "AI Accuracy", value: "94%", color: "bg-[#43E6B5]" },
-                { label: "Avg Quiz Score", value: "81%", color: "bg-[#4FC3F7]" },
-                { label: "Submission Rate", value: "89%", color: "bg-[#6C63FF]" },
+                { label: "AI Accuracy", value: "94%", color: "bg-emerald-500" },
+                { label: "Avg Quiz Score", value: "81%", color: "bg-[#272757]" },
+                { label: "Submission Rate", value: "89%", color: "bg-[#505081]" },
               ].map(({ label, value, color }) => (
                 <div key={label}>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-gray-600">{label}</span>
-                    <span className="font-semibold text-gray-800">{value}</span>
+                    <span className="font-semibold text-[#0F0E47]">{value}</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className={`h-full ${color} rounded-full`} style={{ width: value }} />
@@ -136,8 +172,8 @@ export function AdminDashboard() {
 
         {/* Recent activity */}
         <div className="lg:col-span-2">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Recent Activity</h2>
-          <Card className="bg-white rounded-2xl shadow-md overflow-hidden">
+          <h2 className="text-sm font-semibold text-[#0F0E47] mb-4">Recent Activity</h2>
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             {activity.map((item, i) => {
               const Icon = item.icon;
               return (
@@ -145,11 +181,11 @@ export function AdminDashboard() {
                   key={item.id}
                   className={`flex items-start gap-4 p-5 ${i < activity.length - 1 ? "border-b border-gray-100" : ""} hover:bg-gray-50 transition-colors`}
                 >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.color}`}>
-                    <Icon className="w-5 h-5" />
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${item.color}`}>
+                    <Icon className="w-5 h-5" strokeWidth={1.75} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-gray-800 text-sm leading-snug">{item.message}</p>
+                    <p className="text-[#0F0E47] text-sm leading-snug">{item.message}</p>
                     <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
                       <Clock className="w-3 h-3" /> {item.time}
                     </p>
@@ -160,20 +196,20 @@ export function AdminDashboard() {
           </Card>
 
           {/* Flagged quizzes quick card */}
-          <Card className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-100 rounded-2xl p-5 mt-5">
-            <div className="flex items-center justify-between">
+          <Card className="bg-white rounded-xl border border-red-100 shadow-sm p-5 mt-5">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                  <Flag className="w-5 h-5 text-red-500" />
+                <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                  <Flag className="w-5 h-5 text-red-500" strokeWidth={1.75} />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-800">2 quizzes flagged for review</p>
-                  <p className="text-sm text-gray-500">Suspicious activity detected by AI</p>
+                  <p className="font-semibold text-[#0F0E47] text-sm">2 quizzes flagged for review</p>
+                  <p className="text-xs text-gray-500">Suspicious activity detected by AI</p>
                 </div>
               </div>
               <Button
                 onClick={() => navigate("/admin/quiz-oversight")}
-                className="bg-red-500 hover:bg-red-600 text-white rounded-xl px-4"
+                className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl px-4"
               >
                 Review <ArrowRight className="w-4 h-4 ml-1" />
               </Button>

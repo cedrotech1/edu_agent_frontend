@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -15,8 +15,20 @@ import {
 import { Switch } from "../../components/ui/switch";
 import { Badge } from "../../components/ui/badge";
 import {
-  Sparkles, Plus, Trash2, Edit, ArrowLeft, Copy, CheckCircle, X,
-  AlignLeft, List, ToggleLeft,
+  Sparkles,
+  Plus,
+  Trash2,
+  Edit,
+  ArrowLeft,
+  Copy,
+  CheckCircle,
+  X,
+  AlignLeft,
+  List,
+  ToggleLeft,
+  Save,
+  Send,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
@@ -32,6 +44,7 @@ const educationLevels: Record<string, { name: string; subLevels: string[] }> = {
 };
 
 type QuestionType = "mcq" | "short" | "truefalse";
+type Step = "ai" | "edit";
 
 interface Question {
   id: number;
@@ -49,20 +62,28 @@ const TYPE_META: Record<QuestionType, { label: string; badge: string; icon: Reac
   truefalse: { label: "True & False", badge: "T&F", icon: ToggleLeft },
 };
 
-function AddQuestionModal({
+function QuestionEditorModal({
+  initial,
   onSave,
   onCancel,
 }: {
+  initial?: Question | null;
   onSave: (q: Omit<Question, "id">) => void;
   onCancel: () => void;
 }) {
-  const [qType, setQType] = useState<QuestionType>("mcq");
-  const [questionText, setQuestionText] = useState("");
-  const [options, setOptions] = useState(["", "", "", ""]);
-  const [correctMCQ, setCorrectMCQ] = useState<number | null>(null);
-  const [modelAnswer, setModelAnswer] = useState("");
-  const [correctTF, setCorrectTF] = useState<boolean | null>(null);
-  const [points, setPoints] = useState(1);
+  const [qType, setQType] = useState<QuestionType>(initial?.type || "mcq");
+  const [questionText, setQuestionText] = useState(initial?.question || "");
+  const [options, setOptions] = useState<string[]>(
+    initial?.options?.length ? [...initial.options] : ["", "", "", ""]
+  );
+  const [correctMCQ, setCorrectMCQ] = useState<number | null>(
+    typeof initial?.correct === "number" ? initial.correct : null
+  );
+  const [modelAnswer, setModelAnswer] = useState(initial?.modelAnswer || "");
+  const [correctTF, setCorrectTF] = useState<boolean | null>(
+    typeof initial?.correct === "boolean" ? initial.correct : null
+  );
+  const [points, setPoints] = useState(initial?.points || 1);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const updateOption = (i: number, val: string) => {
@@ -77,17 +98,22 @@ function AddQuestionModal({
     if (options.length <= 2) return;
     setOptions((prev) => prev.filter((_, idx) => idx !== i));
     if (correctMCQ === i) setCorrectMCQ(null);
-    if (correctMCQ !== null && correctMCQ > i) setCorrectMCQ(correctMCQ - 1);
+    else if (correctMCQ !== null && correctMCQ > i) setCorrectMCQ(correctMCQ - 1);
   };
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!questionText.trim()) e.question = "Question text is required";
     if (qType === "mcq") {
-      if (options.some((o) => !o.trim())) e.options = "All options must be filled in";
+      const filled = options.filter((o) => o.trim());
+      if (filled.length < 2) e.options = "Add at least 2 options";
+      else if (options.some((o) => !o.trim())) e.options = "Fill in all options or remove empty ones";
       if (correctMCQ === null) e.correct = "Select the correct answer";
     }
-    if (qType === "truefalse" && correctTF === null) e.correct = "Select True or False as correct";
+    if (qType === "short" && !modelAnswer.trim()) {
+      e.modelAnswer = "Add a model answer or keywords for grading";
+    }
+    if (qType === "truefalse" && correctTF === null) e.correct = "Select True or False";
     if (points < 1) e.points = "Points must be at least 1";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -96,93 +122,133 @@ function AddQuestionModal({
   const handleSave = () => {
     if (!validate()) return;
     if (qType === "mcq") {
-      onSave({ type: "mcq", question: questionText, options, correct: correctMCQ!, points });
+      onSave({
+        type: "mcq",
+        question: questionText.trim(),
+        options: options.map((o) => o.trim()),
+        correct: correctMCQ!,
+        points,
+      });
     } else if (qType === "short") {
-      onSave({ type: "short", question: questionText, modelAnswer, points });
+      onSave({
+        type: "short",
+        question: questionText.trim(),
+        modelAnswer: modelAnswer.trim(),
+        points,
+      });
     } else {
-      onSave({ type: "truefalse", question: questionText, correct: correctTF!, points });
+      onSave({
+        type: "truefalse",
+        question: questionText.trim(),
+        correct: correctTF!,
+        points,
+      });
     }
   };
 
-  const typeChips: { value: QuestionType; label: string; icon: React.ElementType }[] = [
-    { value: "mcq", label: "Multiple Choice", icon: List },
-    { value: "short", label: "Short Answer", icon: AlignLeft },
-    { value: "truefalse", label: "True & False", icon: ToggleLeft },
-  ];
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg my-4">
-        {/* Modal header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">Add Question</h2>
-          <button onClick={onCancel} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-            <X className="w-5 h-5 text-gray-500" />
+    <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-[100] p-4 overflow-y-auto">
+      <div
+        className="bg-white rounded-xl border border-gray-100 shadow-xl w-full max-w-lg my-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="text-base font-semibold text-[#0F0E47]">
+            {initial ? "Edit Question" : "Add Question"}
+          </h2>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+          >
+            <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Question type chips */}
+        <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
           <div>
-            <Label className="mb-3 block text-gray-700 font-medium">Question Type</Label>
+            <Label className="mb-2 block text-xs font-medium text-gray-600">Question Type</Label>
             <div className="flex gap-2 flex-wrap">
-              {typeChips.map(({ value, label, icon: Icon }) => (
-                <button
-                  key={value}
-                  onClick={() => { setQType(value); setErrors({}); }}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                    qType === value
-                      ? "border-[#6C63FF] bg-[#6C63FF] text-white"
-                      : "border-gray-200 text-gray-600 hover:border-[#6C63FF]/50"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </button>
-              ))}
+              {(Object.keys(TYPE_META) as QuestionType[]).map((value) => {
+                const Icon = TYPE_META[value].icon;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setQType(value);
+                      setErrors({});
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
+                      qType === value
+                        ? "border-[#272757] bg-[#272757] text-white"
+                        : "border-gray-200 text-gray-600 hover:border-gray-300"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {TYPE_META[value].label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Question text */}
           <div>
-            <Label className="mb-2 block text-gray-700 font-medium">Question</Label>
+            <Label className="mb-1.5 block text-xs font-medium text-gray-600">Question</Label>
             <Textarea
               value={questionText}
-              onChange={(e) => { setQuestionText(e.target.value); setErrors((p) => ({ ...p, question: "" })); }}
+              onChange={(e) => {
+                setQuestionText(e.target.value);
+                setErrors((p) => ({ ...p, question: "" }));
+              }}
               placeholder="Type your question here…"
-              className={`rounded-xl border-2 px-4 py-3 min-h-[90px] resize-none ${errors.question ? "border-red-400" : "border-gray-200 focus:border-[#6C63FF]"}`}
+              className={`rounded-xl border px-3 py-2.5 min-h-[90px] resize-none text-sm ${
+                errors.question ? "border-red-400" : "border-gray-200"
+              }`}
             />
             {errors.question && <p className="text-red-500 text-xs mt-1">{errors.question}</p>}
           </div>
 
-          {/* MCQ options */}
           {qType === "mcq" && (
             <div>
-              <Label className="mb-3 block text-gray-700 font-medium">Answer Options</Label>
+              <Label className="mb-2 block text-xs font-medium text-gray-600">
+                Answer options (select the correct one)
+              </Label>
               <div className="space-y-2">
                 {options.map((opt, i) => (
-                  <div key={i} className="flex items-center gap-3">
+                  <div key={i} className="flex items-center gap-2">
                     <button
-                      onClick={() => setCorrectMCQ(i)}
-                      className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all ${
+                      type="button"
+                      onClick={() => {
+                        setCorrectMCQ(i);
+                        setErrors((p) => ({ ...p, correct: "" }));
+                      }}
+                      className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${
                         correctMCQ === i
-                          ? "border-[#43E6B5] bg-[#43E6B5]"
-                          : "border-gray-300 hover:border-[#43E6B5]"
+                          ? "border-emerald-500 bg-emerald-500"
+                          : "border-gray-300 hover:border-emerald-400"
                       }`}
                     >
                       {correctMCQ === i && <div className="w-2 h-2 rounded-full bg-white" />}
                     </button>
-                    <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 shrink-0">
+                    <span className="w-6 h-6 rounded-md bg-gray-100 text-[11px] font-bold text-gray-500 flex items-center justify-center shrink-0">
                       {String.fromCharCode(65 + i)}
-                    </div>
+                    </span>
                     <Input
                       value={opt}
-                      onChange={(e) => { updateOption(i, e.target.value); setErrors((p) => ({ ...p, options: "" })); }}
+                      onChange={(e) => {
+                        updateOption(i, e.target.value);
+                        setErrors((p) => ({ ...p, options: "" }));
+                      }}
                       placeholder={`Option ${String.fromCharCode(65 + i)}`}
-                      className="rounded-xl border-2 border-gray-200 px-3 py-2 text-sm flex-1"
+                      className="rounded-xl border border-gray-200 h-9 text-sm flex-1"
                     />
                     {options.length > 2 && (
-                      <button onClick={() => removeOption(i)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => removeOption(i)}
+                        className="p-1.5 text-gray-400 hover:text-red-500"
+                      >
                         <X className="w-4 h-4" />
                       </button>
                     )}
@@ -193,48 +259,59 @@ function AddQuestionModal({
               {errors.correct && <p className="text-red-500 text-xs mt-1">{errors.correct}</p>}
               {options.length < 6 && (
                 <button
+                  type="button"
                   onClick={addOption}
-                  className="mt-3 flex items-center gap-1.5 text-[#6C63FF] text-sm font-medium hover:underline"
+                  className="mt-2 flex items-center gap-1 text-[#272757] text-xs font-medium hover:underline"
                 >
-                  <Plus className="w-4 h-4" /> Add option
+                  <Plus className="w-3.5 h-3.5" /> Add option
                 </button>
               )}
-              <p className="text-xs text-gray-400 mt-2">Click the circle next to an option to mark it as correct</p>
             </div>
           )}
 
-          {/* Short Answer */}
           {qType === "short" && (
             <div>
-              <Label className="mb-2 block text-gray-700 font-medium">Model Answer / Keywords AI Should Look For</Label>
+              <Label className="mb-1.5 block text-xs font-medium text-gray-600">
+                Model answer / keywords
+              </Label>
               <Textarea
                 value={modelAnswer}
-                onChange={(e) => setModelAnswer(e.target.value)}
-                placeholder="e.g. photosynthesis, chlorophyll, sunlight, glucose"
-                className="rounded-xl border-2 border-gray-200 focus:border-[#6C63FF] px-4 py-3 min-h-[80px] resize-none text-sm"
+                onChange={(e) => {
+                  setModelAnswer(e.target.value);
+                  setErrors((p) => ({ ...p, modelAnswer: "" }));
+                }}
+                placeholder="Expected answer or keywords AI should look for"
+                className={`rounded-xl border px-3 py-2.5 min-h-[80px] resize-none text-sm ${
+                  errors.modelAnswer ? "border-red-400" : "border-gray-200"
+                }`}
               />
-              <p className="text-xs text-gray-400 mt-1.5">AI will compare student answers against these keywords and concepts</p>
+              {errors.modelAnswer && (
+                <p className="text-red-500 text-xs mt-1">{errors.modelAnswer}</p>
+              )}
             </div>
           )}
 
-          {/* True/False */}
           {qType === "truefalse" && (
             <div>
-              <Label className="mb-3 block text-gray-700 font-medium">Mark Correct Answer</Label>
-              <div className="grid grid-cols-2 gap-4">
+              <Label className="mb-2 block text-xs font-medium text-gray-600">Correct answer</Label>
+              <div className="grid grid-cols-2 gap-3">
                 {([true, false] as const).map((val) => (
                   <button
                     key={String(val)}
-                    onClick={() => { setCorrectTF(val); setErrors((p) => ({ ...p, correct: "" })); }}
-                    className={`py-6 rounded-2xl border-2 font-bold text-lg transition-all ${
+                    type="button"
+                    onClick={() => {
+                      setCorrectTF(val);
+                      setErrors((p) => ({ ...p, correct: "" }));
+                    }}
+                    className={`py-4 rounded-xl border-2 font-semibold text-sm transition-all ${
                       correctTF === val
                         ? val
-                          ? "border-[#43E6B5] bg-[#43E6B5]/10 text-[#43E6B5]"
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                           : "border-red-400 bg-red-50 text-red-500"
                         : "border-gray-200 text-gray-500 hover:border-gray-300"
                     }`}
                   >
-                    {val ? "✓ True" : "✕ False"}
+                    {val ? "True" : "False"}
                   </button>
                 ))}
               </div>
@@ -242,48 +319,50 @@ function AddQuestionModal({
             </div>
           )}
 
-          {/* Points */}
           <div>
-            <Label className="mb-2 block text-gray-700 font-medium">Points</Label>
-            <div className="flex items-center gap-3">
+            <Label className="mb-1.5 block text-xs font-medium text-gray-600">Points</Label>
+            <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setPoints((p) => Math.max(1, p - 1))}
-                className="w-9 h-9 rounded-xl border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-[#6C63FF] transition-colors font-bold"
+                className="w-9 h-9 rounded-xl border border-gray-200 font-bold text-gray-600"
               >
                 −
               </button>
               <Input
                 type="number"
                 value={points}
-                onChange={(e) => { setPoints(Math.max(1, parseInt(e.target.value) || 1)); setErrors((p) => ({ ...p, points: "" })); }}
-                className="w-20 rounded-xl border-2 border-gray-200 px-3 py-2 text-center font-bold text-lg"
+                onChange={(e) => setPoints(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-20 rounded-xl border border-gray-200 h-9 text-center font-semibold"
                 min={1}
               />
               <button
+                type="button"
                 onClick={() => setPoints((p) => p + 1)}
-                className="w-9 h-9 rounded-xl border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-[#6C63FF] transition-colors font-bold"
+                className="w-9 h-9 rounded-xl border border-gray-200 font-bold text-gray-600"
               >
                 +
               </button>
-              <span className="text-gray-500 text-sm">point{points !== 1 ? "s" : ""}</span>
             </div>
             {errors.points && <p className="text-red-500 text-xs mt-1">{errors.points}</p>}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-5 border-t border-gray-100">
-          <button
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100">
+          <Button
+            type="button"
+            variant="outline"
             onClick={onCancel}
-            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            className="border border-gray-200 rounded-xl h-9 px-4 text-sm"
           >
             Cancel
-          </button>
+          </Button>
           <Button
+            type="button"
             onClick={handleSave}
-            className="bg-[#6C63FF] hover:bg-[#5851E6] text-white px-8 py-2.5 rounded-xl font-semibold"
+            className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-9 px-5 text-sm"
           >
-            Save Question
+            {initial ? "Update Question" : "Save Question"}
           </Button>
         </div>
       </div>
@@ -293,20 +372,27 @@ function AddQuestionModal({
 
 export function QuizBuilder() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<"generate" | "edit">("generate");
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("id");
+
+  const [step, setStep] = useState<Step>(editId ? "edit" : "ai");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showPublishModal, setShowPublishModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [quizCode, setQuizCode] = useState("");
   const [codeCopied, setCodeCopied] = useState(false);
+  const [showSuccess, setShowSuccess] = useState<"draft" | "active" | null>(null);
   const [selectedClass, setSelectedClass] = useState("");
   const [classes, setClasses] = useState<{ id: number; name: string }[]>([]);
-  const [nextId, setNextId] = useState(100);
-  const [publishing, setPublishing] = useState(false);
+  const [nextId, setNextId] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [quizId, setQuizId] = useState<number | null>(editId ? Number(editId) : null);
+  const [loadingQuiz, setLoadingQuiz] = useState(Boolean(editId));
 
   const [topic, setTopic] = useState("");
   const [subject, setSubject] = useState("");
+  const [description, setDescription] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
   const [subLevel, setSubLevel] = useState("");
   const [numQuestions, setNumQuestions] = useState("10");
@@ -330,6 +416,49 @@ export function QuizBuilder() {
       .catch(() => setClasses([]));
   }, []);
 
+  useEffect(() => {
+    if (!editId) return;
+    (async () => {
+      setLoadingQuiz(true);
+      try {
+        const res = await api.quizzes.get(editId);
+        const d: any = res.data || {};
+        setQuizId(d.id);
+        setQuizTitle(d.title || "");
+        setSubject(d.subject || "");
+        setSelectedClass(d.classId ? String(d.classId) : "");
+        setTimeLimit(String(d.timeLimit || 30));
+        setLockAfterDeadline(d.lockAfterDeadline !== false);
+        setAntiAI(Boolean(d.antiAI));
+        setInstantResults(d.instantResults !== false);
+        if (d.deadline) {
+          const dt = new Date(d.deadline);
+          if (!Number.isNaN(dt.getTime())) {
+            setDeadline(dt.toISOString().slice(0, 10));
+            setDeadlineTime(dt.toTimeString().slice(0, 5));
+          }
+        }
+        const qs = (d.questions || []).map((q: any, i: number) => ({
+          id: q.id || i + 1,
+          type: (q.type || "mcq") as QuestionType,
+          question: q.question || "",
+          options: q.options || undefined,
+          correct: q.correct,
+          modelAnswer: q.modelAnswer || "",
+          points: Number(q.points || 1),
+        }));
+        setQuestions(qs);
+        setNextId(qs.reduce((m: number, q: Question) => Math.max(m, q.id), 0) + 1);
+        setStep("edit");
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : "Failed to load quiz");
+        navigate("/teacher/quizzes");
+      } finally {
+        setLoadingQuiz(false);
+      }
+    })();
+  }, [editId, navigate]);
+
   const handleGenerate = async () => {
     if (!topic.trim() || !subject) {
       toast.error("Please enter a topic and subject");
@@ -344,22 +473,35 @@ export function QuizBuilder() {
         subLevel,
         numQuestions,
         questionType,
+        description: description.trim() || undefined,
       });
-      const data = res.data as { questions?: Question[]; title?: string } | Question[];
+      const data = res.data as {
+        questions?: Question[];
+        title?: string;
+        source?: string;
+      } | Question[];
       const qs = Array.isArray(data) ? data : data.questions || [];
-      setQuestions(
-        qs.map((q, i) => ({
-          ...q,
-          id: q.id ?? i + 1,
-          points: q.points ?? 1,
-        }))
-      );
-      setNextId(qs.length + 1);
-      const title =
-        (!Array.isArray(data) && data.title) || `${topic} - ${subject} Quiz`;
-      setQuizTitle(title);
+      const mapped = qs.map((q, i) => ({
+        ...q,
+        id: q.id ?? i + 1,
+        points: q.points ?? 1,
+        type: (q.type || "mcq") as QuestionType,
+      }));
+      setQuestions(mapped);
+      setNextId(mapped.length + 1);
+      setQuizTitle((!Array.isArray(data) && data.title) || `${topic} - ${subject} Quiz`);
+      setQuizId(null);
       setStep("edit");
-      toast.success("Quiz generated!");
+      const source = !Array.isArray(data) ? data.source : undefined;
+      if (source === "stub" || (res as any).warning) {
+        toast.message("Generated with templates", {
+          description:
+            (res as any).warning ||
+            "Add CURSOR_API_KEY on the server for real AI questions.",
+        });
+      } else {
+        toast.success("AI quiz ready — review and edit before saving");
+      }
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to generate quiz");
     } finally {
@@ -367,388 +509,574 @@ export function QuizBuilder() {
     }
   };
 
-  const handlePublish = async () => {
+  const buildPayload = (status: "draft" | "active") => {
+    let deadlineIso: string | undefined;
+    if (deadline) {
+      deadlineIso = deadlineTime
+        ? new Date(`${deadline}T${deadlineTime}`).toISOString()
+        : new Date(`${deadline}T23:59:00`).toISOString();
+    }
+    return {
+      title: quizTitle.trim(),
+      subject: subject || undefined,
+      classId: selectedClass ? Number(selectedClass) : null,
+      timeLimit: Number(timeLimit) || 30,
+      deadline: deadlineIso || null,
+      lockAfterDeadline,
+      antiAI,
+      instantResults,
+      status,
+      questions: questions.map((q, order) => ({
+        type: q.type,
+        question: q.question,
+        options: q.options,
+        correct: q.correct,
+        modelAnswer: q.modelAnswer,
+        points: q.points,
+        order,
+      })),
+    };
+  };
+
+  const saveQuiz = async (status: "draft" | "active") => {
     if (!quizTitle.trim()) {
       toast.error("Please enter a quiz title");
       return;
     }
-    if (!questions.length) {
-      toast.error("Add at least one question");
+    if (status === "active" && !questions.length) {
+      toast.error("Add at least one question before publishing");
       return;
     }
-    setPublishing(true);
+    setSaving(true);
     try {
-      let deadlineIso: string | undefined;
-      if (deadline) {
-        deadlineIso = deadlineTime
-          ? new Date(`${deadline}T${deadlineTime}`).toISOString()
-          : new Date(`${deadline}T23:59:00`).toISOString();
+      const payload = buildPayload(status);
+      let created: any;
+      if (quizId) {
+        const res = await api.quizzes.update(quizId, payload);
+        created = res.data;
+      } else {
+        const res = await api.quizzes.create(payload);
+        created = res.data;
+        if (created?.id) setQuizId(created.id);
       }
-      const res = await api.quizzes.create({
-        title: quizTitle,
-        subject,
-        classId: selectedClass ? Number(selectedClass) : undefined,
-        timeLimit: Number(timeLimit) || 30,
-        deadline: deadlineIso,
-        lockAfterDeadline,
-        antiAI,
-        instantResults,
-        status: "active",
-        questions: questions.map((q, order) => ({
-          type: q.type,
-          question: q.question,
-          options: q.options,
-          correct: q.correct,
-          modelAnswer: q.modelAnswer,
-          points: q.points,
-          order,
-        })),
-      });
-      const created = res.data as { code?: string; id?: number };
-      setQuizCode(created.code || `QZ-${created.id || ""}`);
-      setShowPublishModal(true);
-      toast.success("Quiz published!");
+      setQuizCode(created?.code || `QZ-${created?.id || ""}`);
+      setShowSuccess(status);
+      toast.success(status === "draft" ? "Draft saved" : "Quiz published!");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to publish quiz");
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : status === "draft"
+            ? "Failed to save draft"
+            : "Failed to publish quiz"
+      );
     } finally {
-      setPublishing(false);
+      setSaving(false);
     }
-  };
-
-  const copyCode = () => {
-    navigator.clipboard.writeText(quizCode);
-    setCodeCopied(true);
-    setTimeout(() => setCodeCopied(false), 2000);
   };
 
   const handleSaveQuestion = (q: Omit<Question, "id">) => {
-    setQuestions((prev) => [...prev, { ...q, id: nextId }]);
-    setNextId((n) => n + 1);
-    setShowAddModal(false);
+    if (editingQuestion) {
+      setQuestions((prev) =>
+        prev.map((item) => (item.id === editingQuestion.id ? { ...q, id: item.id } : item))
+      );
+      setEditingQuestion(null);
+      toast.success("Question updated");
+    } else {
+      setQuestions((prev) => [...prev, { ...q, id: nextId }]);
+      setNextId((n) => n + 1);
+      setShowAddModal(false);
+      toast.success("Question added");
+    }
   };
 
   const handleDeleteQuestion = (id: number) => {
-    setQuestions(questions.filter((q) => q.id !== id));
+    setQuestions((prev) => prev.filter((q) => q.id !== id));
   };
 
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
 
-  if (step === "generate") {
+  if (loadingQuiz) {
     return (
-      <AppShell role="teacher" pageTitle="Generate Quiz">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" onClick={() => navigate("/teacher")} className="rounded-xl">
-            <ArrowLeft className="w-5 h-5 mr-2" /> Back
-          </Button>
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-8 h-8 text-[#6C63FF]" />
-            <h2 className="text-2xl font-bold text-gray-800">AI Quiz Generator</h2>
-          </div>
+      <AppShell role="teacher" pageTitle="Quiz Builder">
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <Loader2 className="w-7 h-7 animate-spin mb-3" />
+          <p className="text-sm">Loading quiz…</p>
         </div>
+      </AppShell>
+    );
+  }
 
-        <div className="max-w-4xl mx-auto">
-          <Card className="bg-white rounded-3xl p-8 shadow-lg">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-2">Generate Quiz with AI ✨</h2>
-              <p className="text-gray-600">Tell us what you need, and our AI will create a custom quiz for you</p>
+  /* ───────── AI form ───────── */
+  if (step === "ai") {
+    return (
+      <AppShell role="teacher" pageTitle="Quiz Builder">
+        <div className="max-w-2xl mx-auto space-y-5">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" onClick={() => navigate("/teacher")} className="rounded-xl h-9 px-3">
+              <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+            </Button>
+            <div>
+              <h2 className="text-lg font-semibold text-[#0F0E47]">Generate Quiz with AI</h2>
+              <p className="text-xs text-gray-500">
+                Describe what students should be tested on — AI will draft serious exam questions you can refine
+              </p>
             </div>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="topic" className="mb-2 block">Topic</Label>
-                  <Input id="topic" value={topic} onChange={(e) => setTopic(e.target.value)}
-                    className="rounded-xl border-2 px-4 py-3" placeholder="e.g., Algebra, Photosynthesis" />
-                </div>
-                <div>
-                  <Label htmlFor="subject" className="mb-2 block">Subject</Label>
-                  <Select value={subject} onValueChange={setSubject}>
-                    <SelectTrigger className="rounded-xl border-2 px-4 py-3"><SelectValue placeholder="Select subject" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="math">Mathematics</SelectItem>
-                      <SelectItem value="science">Science</SelectItem>
-                      <SelectItem value="english">English</SelectItem>
-                      <SelectItem value="history">History</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="mb-2 block">Grade Level</Label>
-                  <Select value={educationLevel} onValueChange={setEducationLevel}>
-                    <SelectTrigger className="rounded-xl border-2 px-4 py-3"><SelectValue placeholder="Select grade" /></SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(educationLevels).map((key) => (
-                        <SelectItem key={key} value={key}>{educationLevels[key].name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="mb-2 block">Sub Level</Label>
-                  <Select value={subLevel} onValueChange={setSubLevel}>
-                    <SelectTrigger className="rounded-xl border-2 px-4 py-3"><SelectValue placeholder="Select sub level" /></SelectTrigger>
-                    <SelectContent>
-                      {educationLevels[educationLevel]?.subLevels.map((sl) => (
-                        <SelectItem key={sl} value={sl}>{sl}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="numQuestions" className="mb-2 block">Number of Questions</Label>
-                  <Input id="numQuestions" type="number" value={numQuestions}
-                    onChange={(e) => setNumQuestions(e.target.value)}
-                    className="rounded-xl border-2 px-4 py-3" min="5" max="50" />
-                </div>
+          </div>
+
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">Topic</Label>
+                <Input
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  className="rounded-xl border border-gray-200 h-10 text-sm"
+                  placeholder="e.g. Java OOP, Photosynthesis"
+                />
               </div>
               <div>
-                <Label className="mb-2 block">Question Type</Label>
-                <Select value={questionType} onValueChange={setQuestionType}>
-                  <SelectTrigger className="rounded-xl border-2 px-4 py-3"><SelectValue /></SelectTrigger>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">Subject</Label>
+                <Select value={subject} onValueChange={setSubject}>
+                  <SelectTrigger className="rounded-xl border border-gray-200 h-10 text-sm">
+                    <SelectValue placeholder="Select subject" />
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="mcq">Multiple Choice (MCQ)</SelectItem>
-                    <SelectItem value="short">Short Answer</SelectItem>
-                    <SelectItem value="truefalse">True / False</SelectItem>
-                    <SelectItem value="mixed">Mixed Types</SelectItem>
+                    <SelectItem value="math">Mathematics</SelectItem>
+                    <SelectItem value="science">Science</SelectItem>
+                    <SelectItem value="english">English</SelectItem>
+                    <SelectItem value="history">History</SelectItem>
+                    <SelectItem value="computer">Computer Science</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleGenerate} disabled={isGenerating}
-                className="w-full bg-gradient-to-r from-[#6C63FF] to-[#5851E6] hover:from-[#5851E6] hover:to-[#4842D1] text-white py-6 rounded-2xl text-lg font-semibold shadow-lg disabled:opacity-80">
-                {isGenerating ? (
-                  <span className="flex items-center gap-2">
-                    <span className="inline-block w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    QuizMind is thinking...
-                  </span>
-                ) : (
-                  <><Sparkles className="w-6 h-6 mr-2" />Generate with AI ✨</>
-                )}
-              </Button>
+              <div className="sm:col-span-2">
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">
+                  Description / AI instructions
+                </Label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="rounded-xl border border-gray-200 min-h-[96px] text-sm resize-none"
+                  placeholder="Extra guidance for the AI, e.g. Focus on Java classes, inheritance, and exception handling. Include code-snippet style MCQs. Difficulty: intermediate. Avoid trivia."
+                />
+                <p className="text-[11px] text-gray-400 mt-1.5">
+                  This is sent as an additional prompt so the AI generates more specific, high-quality questions.
+                </p>
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">Grade level</Label>
+                <Select value={educationLevel} onValueChange={(v) => { setEducationLevel(v); setSubLevel(""); }}>
+                  <SelectTrigger className="rounded-xl border border-gray-200 h-10 text-sm">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(educationLevels).map((key) => (
+                      <SelectItem key={key} value={key}>{educationLevels[key].name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">Sub level</Label>
+                <Select value={subLevel} onValueChange={setSubLevel}>
+                  <SelectTrigger className="rounded-xl border border-gray-200 h-10 text-sm">
+                    <SelectValue placeholder="Select sub level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(educationLevels[educationLevel]?.subLevels || []).map((sl) => (
+                      <SelectItem key={sl} value={sl}>{sl}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">Number of questions</Label>
+                <Input
+                  type="number"
+                  min={3}
+                  max={50}
+                  value={numQuestions}
+                  onChange={(e) => setNumQuestions(e.target.value)}
+                  className="rounded-xl border border-gray-200 h-10 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">Question type</Label>
+                <Select value={questionType} onValueChange={setQuestionType}>
+                  <SelectTrigger className="rounded-xl border border-gray-200 h-10 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mcq">Multiple Choice</SelectItem>
+                    <SelectItem value="short">Short Answer</SelectItem>
+                    <SelectItem value="truefalse">True / False</SelectItem>
+                    <SelectItem value="mixed">Mixed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
+            <Button
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              className="w-full bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-11 text-sm gap-2"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> AI is thinking… this can take a minute
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" /> Generate with AI
+                </>
+              )}
+            </Button>
           </Card>
         </div>
       </AppShell>
     );
   }
 
+  /* ───────── Editor ───────── */
   return (
-    <AppShell role="teacher" pageTitle="Generate Quiz">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => setStep("generate")} className="rounded-xl">
-            <ArrowLeft className="w-5 h-5 mr-2" /> Back
+    <AppShell role="teacher" pageTitle="Quiz Builder">
+      <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button
+            variant="ghost"
+            onClick={() => (editId ? navigate("/teacher/quizzes") : setStep("ai"))}
+            className="rounded-xl h-9 px-3 shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
           </Button>
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-8 h-8 text-[#6C63FF]" />
-            <h2 className="text-2xl font-bold text-gray-800">Review & Edit Quiz</h2>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-[#0F0E47] truncate">
+              {quizTitle || "Untitled quiz"}
+            </h2>
+            <p className="text-xs text-gray-500">
+              {questions.length} question{questions.length === 1 ? "" : "s"} · {totalPoints} pts
+              {quizId ? " · Editing saved quiz" : ""}
+            </p>
           </div>
         </div>
-        <Button onClick={handlePublish} disabled={publishing}
-          className="bg-[#43E6B5] hover:bg-[#2DD49E] text-white px-6 py-3 rounded-xl font-semibold">
-          {publishing ? "Publishing…" : "Publish Quiz 🚀"}
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            disabled={saving}
+            onClick={() => saveQuiz("draft")}
+            className="border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-9 px-4 text-sm gap-1.5"
+          >
+            <Save className="w-3.5 h-3.5" />
+            {saving ? "Saving…" : "Save draft"}
+          </Button>
+          <Button
+            disabled={saving}
+            onClick={() => saveQuiz("active")}
+            className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-9 px-4 text-sm gap-1.5"
+          >
+            <Send className="w-3.5 h-3.5" />
+            {saving ? "Publishing…" : "Publish"}
+          </Button>
+        </div>
       </div>
 
-      {/* Add Question Modal */}
-      {showAddModal && (
-        <AddQuestionModal onSave={handleSaveQuestion} onCancel={() => setShowAddModal(false)} />
+      {(showAddModal || editingQuestion) && (
+        <QuestionEditorModal
+          initial={editingQuestion}
+          onSave={handleSaveQuestion}
+          onCancel={() => {
+            setShowAddModal(false);
+            setEditingQuestion(null);
+          }}
+        />
       )}
 
-      {/* Publish Modal */}
-      {showPublishModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md text-center">
-            <div className="w-20 h-20 bg-[#43E6B5]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10 text-[#43E6B5]" />
+      {showSuccess && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] p-4">
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-7 w-full max-w-md text-center">
+            <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-7 h-7 text-emerald-600" strokeWidth={1.75} />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Quiz Published! 🎉</h2>
-            <p className="text-gray-600 mb-6">Share this code with your students so they can join</p>
-            <div className="bg-[#6C63FF]/5 border-2 border-[#6C63FF]/20 rounded-2xl p-5 mb-6">
-              <p className="text-sm text-gray-500 mb-2">Quiz code</p>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 bg-white rounded-xl px-4 py-3 font-mono text-2xl font-bold text-[#6C63FF] tracking-widest border-2 border-[#6C63FF]/20">
-                  {quizCode}
+            <h3 className="text-base font-semibold text-[#0F0E47] mb-1">
+              {showSuccess === "draft" ? "Draft saved" : "Quiz published"}
+            </h3>
+            <p className="text-sm text-gray-500 mb-5">
+              {showSuccess === "draft"
+                ? "You can keep editing and publish when you're ready."
+                : "Students in the assigned class see this quiz automatically—no code needed. Share the quiz code only with others outside the class."}
+            </p>
+            {showSuccess === "active" && quizCode && (
+              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-5">
+                <p className="text-xs text-gray-500 mb-2">Quiz join code (optional for class members)</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 font-mono text-xl font-bold text-[#272757] tracking-widest">
+                    {quizCode}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(quizCode);
+                      setCodeCopied(true);
+                      setTimeout(() => setCodeCopied(false), 2000);
+                    }}
+                    className={`p-2.5 rounded-xl text-white ${
+                      codeCopied ? "bg-emerald-600" : "bg-[#272757] hover:bg-[#505081]"
+                    }`}
+                  >
+                    {codeCopied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
                 </div>
-                <button onClick={copyCode}
-                  className={`p-3 rounded-xl transition-all ${codeCopied ? "bg-[#43E6B5] text-white" : "bg-[#6C63FF] text-white hover:bg-[#5851E6]"}`}>
-                  {codeCopied ? <CheckCircle className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                </button>
               </div>
-              {codeCopied && <p className="text-[#43E6B5] text-sm mt-2 font-medium">Copied!</p>}
-            </div>
-            {selectedClass && (
-              <p className="text-sm text-gray-500 mb-6">
-                Assigned to:{" "}
-                <span className="font-semibold text-gray-800">
-                  {classes.find((c) => String(c.id) === selectedClass)?.name || "Class"}
-                </span>
-              </p>
             )}
-            <button onClick={() => navigate("/teacher")}
-              className="w-full bg-[#6C63FF] hover:bg-[#5851E6] text-white py-4 rounded-2xl font-semibold text-lg transition-colors">
-              Back to Dashboard
-            </button>
-          </div>
+            <div className="flex gap-2">
+              {showSuccess === "draft" ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowSuccess(null)}
+                    className="flex-1 border border-gray-200 rounded-xl h-10 text-sm"
+                  >
+                    Keep editing
+                  </Button>
+                  <Button
+                    onClick={() => navigate("/teacher/quizzes")}
+                    className="flex-1 bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-10 text-sm"
+                  >
+                    My quizzes
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={() => navigate("/teacher")}
+                  className="w-full bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-10 text-sm"
+                >
+                  Back to dashboard
+                </Button>
+              )}
+            </div>
+          </Card>
         </div>
       )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Questions List */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800">Questions ({questions.length})</h2>
-                <p className="text-sm text-gray-500">{totalPoints} total points</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-[#0F0E47]">Questions</h3>
+            <Button
+              onClick={() => {
+                setEditingQuestion(null);
+                setShowAddModal(true);
+              }}
+              variant="outline"
+              className="border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-9 px-3 text-sm gap-1.5"
+            >
+              <Plus className="w-4 h-4" /> Add question
+            </Button>
+          </div>
+
+          {questions.length === 0 ? (
+            <Card className="bg-white rounded-xl border border-dashed border-gray-200 shadow-sm p-10 text-center">
+              <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Plus className="w-6 h-6 text-gray-300" />
               </div>
-              <Button onClick={() => setShowAddModal(true)}
-                variant="outline"
-                className="border-2 border-[#6C63FF] text-[#6C63FF] rounded-xl hover:bg-[#6C63FF]/5">
-                <Plus className="w-5 h-5 mr-2" /> Add Question
+              <h4 className="text-sm font-semibold text-[#0F0E47] mb-1">No questions yet</h4>
+              <p className="text-xs text-gray-500 mb-4">
+                Generate with AI first, then add or edit questions here.
+              </p>
+              <Button
+                onClick={() => setStep("ai")}
+                className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-9 px-4 text-sm gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Generate with AI
               </Button>
-            </div>
-
-            {questions.length === 0 && (
-              <Card className="bg-white rounded-2xl p-12 shadow-md text-center border-2 border-dashed border-gray-200">
-                <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Plus className="w-7 h-7 text-gray-400" />
-                </div>
-                <h3 className="font-semibold text-gray-600 mb-2">No questions yet</h3>
-                <p className="text-gray-400 text-sm mb-4">Click "Add Question" to build your quiz manually</p>
-                <Button onClick={() => setShowAddModal(true)}
-                  className="bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl">
-                  Add First Question
-                </Button>
-              </Card>
-            )}
-
-            {questions.map((q, index) => {
-              const meta = TYPE_META[q.type];
+            </Card>
+          ) : (
+            questions.map((q, index) => {
+              const meta = TYPE_META[q.type] || TYPE_META.mcq;
               return (
-                <Card key={q.id} className="bg-white rounded-2xl p-6 shadow-md animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <span className="w-8 h-8 rounded-xl bg-[#6C63FF]/10 text-[#6C63FF] text-sm font-bold flex items-center justify-center shrink-0">
-                        {index + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-gray-800 font-medium mb-2 leading-snug">{q.question}</p>
-                        <div className="flex items-center gap-2 flex-wrap mb-3">
-                          <Badge className={`rounded-full text-xs px-2 py-0.5 ${
-                            q.type === "mcq" ? "bg-[#6C63FF]/10 text-[#6C63FF]"
-                            : q.type === "short" ? "bg-[#4FC3F7]/10 text-[#4FC3F7]"
-                            : "bg-[#FFD166]/10 text-[#FFD166]"
-                          }`}>{meta.badge}</Badge>
-                          <Badge className="rounded-full text-xs px-2 py-0.5 bg-gray-100 text-gray-600">
-                            {q.points} pt{q.points !== 1 ? "s" : ""}
-                          </Badge>
-                        </div>
-                        {q.type === "mcq" && q.options && (
-                          <div className="space-y-1.5">
-                            {q.options.map((opt, i) => (
-                              <div key={i} className={`px-3 py-1.5 rounded-lg text-sm ${
-                                i === q.correct
-                                  ? "bg-[#43E6B5]/10 border border-[#43E6B5]/30 text-[#2ca882] font-medium"
-                                  : "bg-gray-50 text-gray-600"
-                              }`}>
-                                <span className="font-mono text-xs mr-2 opacity-60">{String.fromCharCode(65 + i)}</span>
-                                {opt}
-                                {i === q.correct && <span className="ml-2 text-xs text-[#43E6B5]">✓ Correct</span>}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {q.type === "truefalse" && (
-                          <div className="flex gap-2">
-                            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${q.correct === true ? "bg-[#43E6B5]/10 text-[#2ca882] border border-[#43E6B5]/30" : "bg-gray-50 text-gray-500"}`}>
-                              True {q.correct === true && "✓"}
-                            </span>
-                            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${q.correct === false ? "bg-red-50 text-red-500 border border-red-200" : "bg-gray-50 text-gray-500"}`}>
-                              False {q.correct === false && "✓"}
-                            </span>
-                          </div>
-                        )}
-                        {q.type === "short" && (
-                          <div className="bg-[#4FC3F7]/5 rounded-lg px-3 py-2 text-sm text-gray-500 flex items-center gap-2">
-                            <Sparkles className="w-3.5 h-3.5 text-[#4FC3F7]" />
-                            AI will grade this answer
-                            {q.modelAnswer && <span className="text-xs text-gray-400">· Keywords: {q.modelAnswer.slice(0, 40)}{q.modelAnswer.length > 40 ? "…" : ""}</span>}
-                          </div>
-                        )}
+                <Card
+                  key={q.id}
+                  className="bg-white rounded-xl border border-gray-100 shadow-sm p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="w-8 h-8 rounded-lg bg-[#EDE9FE] text-[#272757] text-xs font-bold flex items-center justify-center shrink-0">
+                      {index + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#0F0E47] leading-snug mb-2">
+                        {q.question}
+                      </p>
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
+                        <Badge className="rounded-full text-[11px] bg-gray-100 text-gray-600">
+                          {meta.badge}
+                        </Badge>
+                        <Badge className="rounded-full text-[11px] bg-gray-100 text-gray-600">
+                          {q.points} pt{q.points !== 1 ? "s" : ""}
+                        </Badge>
                       </div>
+
+                      {q.type === "mcq" && q.options && (
+                        <div className="space-y-1">
+                          {q.options.map((opt, i) => (
+                            <div
+                              key={i}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs ${
+                                i === q.correct
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                  : "bg-gray-50 text-gray-600"
+                              }`}
+                            >
+                              <span className="font-mono mr-1.5 opacity-60">
+                                {String.fromCharCode(65 + i)}.
+                              </span>
+                              {opt}
+                              {i === q.correct ? " ✓" : ""}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {q.type === "truefalse" && (
+                        <div className="flex gap-2">
+                          <span
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                              q.correct === true
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-gray-50 text-gray-500"
+                            }`}
+                          >
+                            True{q.correct === true ? " ✓" : ""}
+                          </span>
+                          <span
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                              q.correct === false
+                                ? "bg-red-50 text-red-600"
+                                : "bg-gray-50 text-gray-500"
+                            }`}
+                          >
+                            False{q.correct === false ? " ✓" : ""}
+                          </span>
+                        </div>
+                      )}
+
+                      {q.type === "short" && (
+                        <div className="bg-gray-50 rounded-lg px-2.5 py-2 text-xs text-gray-500">
+                          Model answer: {q.modelAnswer || "—"}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex gap-1 ml-3 shrink-0">
-                      <Button size="sm" variant="ghost" className="rounded-lg p-2 text-gray-400 hover:text-[#6C63FF]">
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-lg p-2 text-gray-400 hover:text-[#272757]"
+                        onClick={() => setEditingQuestion(q)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="ghost"
+                      <Button
+                        size="sm"
+                        variant="ghost"
                         className="rounded-lg p-2 text-gray-400 hover:text-red-500"
-                        onClick={() => handleDeleteQuestion(q.id)}>
+                        onClick={() => handleDeleteQuestion(q.id)}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
                 </Card>
               );
-            })}
-          </div>
-
-          {/* Quiz Settings */}
-          <div>
-            <Card className="bg-white rounded-2xl p-6 shadow-md sticky top-4">
-              <h3 className="text-xl font-semibold text-gray-800 mb-6">Quiz Settings</h3>
-              <div className="space-y-5">
-                <div>
-                  <Label className="mb-2 block">Quiz Title</Label>
-                  <Input value={quizTitle} onChange={(e) => setQuizTitle(e.target.value)} className="rounded-xl border-2 px-4 py-3" />
-                </div>
-                <div>
-                  <Label className="mb-2 block">Time Limit (minutes)</Label>
-                  <Input type="number" value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} className="rounded-xl border-2 px-4 py-3" />
-                </div>
-                <div>
-                  <Label className="mb-2 block">Deadline Date</Label>
-                  <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="rounded-xl border-2 px-4 py-3" />
-                </div>
-                <div>
-                  <Label className="mb-2 block">Deadline Time</Label>
-                  <Input type="time" value={deadlineTime} onChange={(e) => setDeadlineTime(e.target.value)} className="rounded-xl border-2 px-4 py-3" />
-                </div>
-                <div className="flex items-center justify-between py-3 border-t border-gray-100">
-                  <div>
-                    <p className="font-medium text-gray-800 text-sm">Lock After Deadline</p>
-                    <p className="text-xs text-gray-500">Prevent late submissions</p>
-                  </div>
-                  <Switch checked={lockAfterDeadline} onCheckedChange={setLockAfterDeadline} />
-                </div>
-                <div>
-                  <Label className="mb-2 block">Assign to Class</Label>
-                  <Select value={selectedClass} onValueChange={setSelectedClass}>
-                    <SelectTrigger className="rounded-xl border-2 px-4 py-3"><SelectValue placeholder="Select class" /></SelectTrigger>
-                    <SelectContent>
-                      {classes.map((c) => (
-                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between py-3 border-t border-gray-100">
-                  <div>
-                    <p className="font-medium text-gray-800 text-sm">Anti-AI Cheating</p>
-                    <p className="text-xs text-gray-500">Detect AI-generated answers</p>
-                  </div>
-                  <Switch checked={antiAI} onCheckedChange={setAntiAI} />
-                </div>
-                <div className="flex items-center justify-between py-3 border-t border-gray-100">
-                  <div>
-                    <p className="font-medium text-gray-800 text-sm">Instant Results</p>
-                    <p className="text-xs text-gray-500">Show scores immediately</p>
-                  </div>
-                  <Switch checked={instantResults} onCheckedChange={setInstantResults} />
-                </div>
-              </div>
-            </Card>
-          </div>
+            })
+          )}
         </div>
+
+        <div>
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden sticky top-4">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="text-sm font-semibold text-[#0F0E47]">Quiz settings</h3>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">Title</Label>
+                <Input
+                  value={quizTitle}
+                  onChange={(e) => setQuizTitle(e.target.value)}
+                  className="rounded-xl border border-gray-200 h-10 text-sm"
+                  placeholder="e.g. Biology Chapter 3 Quiz"
+                />
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">
+                  Time limit (minutes)
+                </Label>
+                <Input
+                  type="number"
+                  value={timeLimit}
+                  onChange={(e) => setTimeLimit(e.target.value)}
+                  className="rounded-xl border border-gray-200 h-10 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">Deadline date</Label>
+                <Input
+                  type="date"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="rounded-xl border border-gray-200 h-10 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">Deadline time</Label>
+                <Input
+                  type="time"
+                  value={deadlineTime}
+                  onChange={(e) => setDeadlineTime(e.target.value)}
+                  className="rounded-xl border border-gray-200 h-10 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">Assign to class</Label>
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger className="rounded-xl border border-gray-200 h-10 text-sm">
+                    <SelectValue placeholder="Optional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between py-2 border-t border-gray-100">
+                <div>
+                  <p className="text-sm font-medium text-[#0F0E47]">Lock after deadline</p>
+                  <p className="text-[11px] text-gray-400">Block late submissions</p>
+                </div>
+                <Switch checked={lockAfterDeadline} onCheckedChange={setLockAfterDeadline} />
+              </div>
+              <div className="flex items-center justify-between py-2 border-t border-gray-100">
+                <div>
+                  <p className="text-sm font-medium text-[#0F0E47]">Anti-AI cheating</p>
+                  <p className="text-[11px] text-gray-400">Flag suspicious answers</p>
+                </div>
+                <Switch checked={antiAI} onCheckedChange={setAntiAI} />
+              </div>
+              <div className="flex items-center justify-between py-2 border-t border-gray-100">
+                <div>
+                  <p className="text-sm font-medium text-[#0F0E47]">Instant results</p>
+                  <p className="text-[11px] text-gray-400">Show scores after submit</p>
+                </div>
+                <Switch checked={instantResults} onCheckedChange={setInstantResults} />
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
     </AppShell>
   );
 }

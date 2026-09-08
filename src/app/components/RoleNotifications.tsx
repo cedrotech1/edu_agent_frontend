@@ -17,7 +17,7 @@ import { AppShell } from "./AppShell";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "sonner";
 
-type Role = "teacher" | "student" | "admin" | "parent";
+type Role = "teacher" | "student" | "admin";
 type Filter = "All" | "Unread" | "Read";
 
 interface UiNotification {

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   Settings,
   Upload,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/AppShell";
+import { api, ApiError } from "@/lib/api";
 
 type Device = "desktop" | "mobile";
 type PreviewPage = "home" | "login" | "signup" | "student" | "teacher" | "quiz";
@@ -343,6 +344,31 @@ export function AdminPlatformEditor() {
   const bannerRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const replaceRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.admin.getSettings();
+        const d: any = res.data || {};
+        setIdentity((prev) => ({
+          ...prev,
+          platformName: d.platformName || prev.platformName,
+          primaryColor: d.primaryColor || prev.primaryColor,
+          logoUrl: d.logoUrl || prev.logoUrl,
+        }));
+        setText((prev) => ({
+          ...prev,
+          tagline: d.tagline || prev.tagline,
+          loginWelcome: d.heroHeadline || prev.loginWelcome,
+          footerTagline: d.heroSubtext || prev.footerTagline,
+        }));
+        if (d.customCss) setCustomCss(d.customCss);
+        if (d.customDomain) setCustomDomain(d.customDomain);
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : "Failed to load branding settings");
+      }
+    })();
+  }, []);
+
   const pushHistory = useCallback(() => {
     setHistory(h => [{ identity, text }, ...h].slice(0, 20));
   }, [identity, text]);
@@ -374,9 +400,23 @@ export function AdminPlatformEditor() {
     toast("All unsaved changes discarded");
   };
 
-  const handlePublish = () => {
-    setPublishOverlay(false);
-    toast.success("Changes published successfully");
+  const handlePublish = async () => {
+    try {
+      await api.admin.updateSettings({
+        platformName: identity.platformName,
+        primaryColor: identity.primaryColor,
+        logoUrl: identity.logoUrl,
+        tagline: text.tagline,
+        heroHeadline: text.loginWelcome,
+        heroSubtext: text.footerTagline,
+        customCss: customCss || undefined,
+        customDomain: customDomain || undefined,
+      });
+      setPublishOverlay(false);
+      toast.success("Changes published successfully");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to publish changes");
+    }
   };
 
   const handleRestore = (v: HistoryVersion) => {
@@ -454,7 +494,7 @@ export function AdminPlatformEditor() {
   const saveBtnCls = "w-full py-2.5 rounded-xl text-sm font-bold text-white bg-[#272757] hover:bg-[#1A1952] transition-colors mt-4";
 
   return (
-    <AppShell role="admin" pending={true} pageTitle="Platform Editor">
+    <AppShell role="admin" pageTitle="Platform Editor">
       <div className="flex h-[calc(100vh-64px)] -mx-6 -mt-6 overflow-hidden">
 
         {/* ══════════════════ LEFT PANEL ══════════════════ */}

@@ -5,7 +5,7 @@ import { Card } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { ArrowLeft, Filter, Edit, X, CheckCircle } from "lucide-react";
+import { ArrowLeft, Filter, Edit, X, CheckCircle, ShieldCheck, AlertTriangle, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/AppShell";
 import { api, ApiError } from "@/lib/api";
@@ -17,6 +17,15 @@ interface GradingLog {
 }
 
 type ConfFilter = "all" | "high" | "medium" | "low";
+
+function formatDate(raw: string) {
+  if (!raw || raw === "—") return "—";
+  const d = new Date(raw);
+  if (!Number.isNaN(d.getTime()) && /^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    return d.toLocaleString();
+  }
+  return raw;
+}
 
 export function AdminGradingLogs() {
   const navigate = useNavigate();
@@ -34,17 +43,33 @@ export function AdminGradingLogs() {
         const res = await api.admin.gradingLogs(confFilter);
         const rows = (res.data as any[]) || [];
         setLogs(
-          (Array.isArray(rows) ? rows : []).map((l: any) => ({
-            id: l.id,
-            quiz: l.quiz || l.quizTitle || "—",
-            student: l.student || l.studentName || "—",
-            question: l.question || l.questionText || "—",
-            aiScore: l.aiScore ?? 0,
-            confidence: l.confidence ?? 0,
-            override: Boolean(l.override || l.overridden),
-            date: l.date || l.createdAt || "—",
-            manualScore: l.manualScore ?? null,
-          }))
+          (Array.isArray(rows) ? rows : []).map((l: any) => {
+            const quizObj = l.quiz;
+            const studentObj = l.student;
+            const quizLabel =
+              typeof quizObj === "string"
+                ? quizObj
+                : quizObj?.title || l.quizTitle || "—";
+            const studentLabel =
+              typeof studentObj === "string"
+                ? studentObj
+                : studentObj?.name || studentObj?.names || l.studentName || "—";
+            const questionLabel =
+              typeof l.question === "string"
+                ? l.question
+                : l.question?.question || l.questionText || "—";
+            return {
+              id: l.id,
+              quiz: quizLabel,
+              student: studentLabel,
+              question: questionLabel,
+              aiScore: Number(l.aiScore ?? 0),
+              confidence: Number(l.confidence ?? 0),
+              override: Boolean(l.override || l.overridden),
+              date: l.date || l.createdAt || "—",
+              manualScore: l.manualScore ?? null,
+            };
+          })
         );
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : "Failed to load grading logs");
@@ -83,7 +108,11 @@ export function AdminGradingLogs() {
   };
 
   const confBadge = (c: number) =>
-    c >= 85 ? "bg-[#43E6B5]/10 text-[#43E6B5]" : c >= 65 ? "bg-[#FFD166]/10 text-[#FFD166]" : "bg-red-50 text-red-500";
+    c >= 85 ? "bg-emerald-50 text-emerald-600" : c >= 65 ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-500";
+
+  const highCount = logs.filter((l) => l.confidence >= 85).length;
+  const lowCount = logs.filter((l) => l.confidence < 65).length;
+  const overrideCount = logs.filter((l) => l.override).length;
 
   return (
     <AppShell role="admin" pageTitle="AI Grading Logs">
@@ -92,29 +121,34 @@ export function AdminGradingLogs() {
           <ArrowLeft className="w-5 h-5 mr-2" /> Admin Dashboard
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">AI Grading Logs</h1>
-          <p className="text-sm text-gray-500">{loading ? "Loading…" : `${logs.length} graded answers · ${logs.filter((l) => l.override).length} overridden`}</p>
+          <h1 className="text-2xl font-bold text-[#0F0E47]">AI Grading Logs</h1>
+          <p className="text-sm text-gray-500">{loading ? "Loading…" : `${logs.length} graded answers · ${overrideCount} overridden`}</p>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <Card className="bg-white rounded-2xl p-5 shadow-md text-center">
-          <p className="text-gray-500 text-sm mb-1">High Confidence (85%+)</p>
-          <p className="text-3xl font-bold text-[#43E6B5]">{logs.filter((l) => l.confidence >= 85).length}</p>
-        </Card>
-        <Card className="bg-white rounded-2xl p-5 shadow-md text-center">
-          <p className="text-gray-500 text-sm mb-1">Needs Review (&lt;65%)</p>
-          <p className="text-3xl font-bold text-red-500">{logs.filter((l) => l.confidence < 65).length}</p>
-        </Card>
-        <Card className="bg-white rounded-2xl p-5 shadow-md text-center">
-          <p className="text-gray-500 text-sm mb-1">Human Overrides</p>
-          <p className="text-3xl font-bold text-[#6C63FF]">{logs.filter((l) => l.override).length}</p>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        {[
+          { label: "High Confidence (85%+)", value: highCount, icon: ShieldCheck, iconBg: "bg-emerald-50", iconColor: "text-emerald-600" },
+          { label: "Needs Review (<65%)", value: lowCount, icon: AlertTriangle, iconBg: "bg-red-50", iconColor: "text-red-500" },
+          { label: "Human Overrides", value: overrideCount, icon: UserCheck, iconBg: "bg-[#EDE9FE]", iconColor: "text-[#272757]" },
+        ].map(({ label, value, icon: Icon, iconBg, iconColor }) => (
+          <Card key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-2">{label}</p>
+                <p className="text-3xl font-semibold text-[#0F0E47] tracking-tight">{value}</p>
+              </div>
+              <div className={`w-10 h-10 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
+                <Icon className={`w-[18px] h-[18px] ${iconColor}`} strokeWidth={1.75} />
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
 
       {/* Filter */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
         <Filter className="w-5 h-5 text-gray-500" />
         {([
           { v: "all", label: "All" },
@@ -124,16 +158,18 @@ export function AdminGradingLogs() {
         ] as { v: ConfFilter; label: string }[]).map(({ v, label }) => (
           <button key={v} onClick={() => setConfFilter(v)}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-              confFilter === v ? "bg-[#6C63FF] text-white" : "bg-white text-gray-600 border-2 border-gray-200 hover:border-[#6C63FF]"
+              confFilter === v
+                ? "bg-[#272757] text-white"
+                : "bg-white text-[#272757] border border-gray-200 hover:bg-gray-50"
             }`}>{label}
           </button>
         ))}
       </div>
 
-      <Card className="bg-white rounded-2xl shadow-md overflow-hidden">
+      <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
+            <tr className="bg-gray-50 border-b border-gray-100">
               <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Quiz</th>
               <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Student</th>
               <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Question</th>
@@ -147,11 +183,11 @@ export function AdminGradingLogs() {
           <tbody>
             {filtered.map((l) => (
               <tr key={l.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 text-sm font-medium text-gray-800">{l.quiz}</td>
+                <td className="px-6 py-4 text-sm font-medium text-[#0F0E47]">{l.quiz}</td>
                 <td className="px-6 py-4 text-sm text-gray-600">{l.student}</td>
                 <td className="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate">{l.question}</td>
                 <td className="px-4 py-4 text-center">
-                  <span className="font-bold text-gray-800">{l.override ? l.manualScore : l.aiScore}%</span>
+                  <span className="font-semibold text-[#0F0E47]">{l.override ? l.manualScore : l.aiScore}%</span>
                 </td>
                 <td className="px-4 py-4 text-center">
                   <Badge className={`rounded-full text-xs ${confBadge(l.confidence)}`}>
@@ -160,18 +196,18 @@ export function AdminGradingLogs() {
                 </td>
                 <td className="px-4 py-4 text-center">
                   {l.override ? (
-                    <Badge className="rounded-full bg-[#6C63FF]/10 text-[#6C63FF] text-xs">
+                    <Badge className="rounded-full bg-[#EDE9FE] text-[#272757] text-xs">
                       <CheckCircle className="w-3 h-3 mr-1 inline" /> Yes
                     </Badge>
                   ) : (
                     <span className="text-gray-400 text-sm">No</span>
                   )}
                 </td>
-                <td className="px-4 py-4 text-sm text-gray-500">{l.date}</td>
+                <td className="px-4 py-4 text-sm text-gray-500">{formatDate(l.date)}</td>
                 <td className="px-4 py-4 text-center">
                   <button
                     onClick={() => { setOverrideTarget(l.id); setOverrideScore(""); setOverrideError(""); }}
-                    className="p-2 text-[#6C63FF] hover:bg-[#6C63FF]/10 rounded-lg transition-colors"
+                    className="p-2 text-[#272757] hover:bg-[#EDE9FE] rounded-lg transition-colors"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
@@ -185,10 +221,10 @@ export function AdminGradingLogs() {
       {/* Override Modal */}
       {overrideTarget !== null && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm">
+          <Card className="bg-white rounded-xl border border-gray-100 p-8 shadow-sm w-full max-w-sm">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-xl font-bold text-gray-800">Override Grade</h3>
+                <h3 className="text-xl font-bold text-[#0F0E47]">Override Grade</h3>
                 <p className="text-gray-500 text-sm mt-1">{logs.find((l) => l.id === overrideTarget)?.student}</p>
               </div>
               <button onClick={() => setOverrideTarget(null)} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -203,14 +239,14 @@ export function AdminGradingLogs() {
               <Input
                 type="number" value={overrideScore}
                 onChange={(e) => { setOverrideScore(e.target.value); setOverrideError(""); }}
-                className={`rounded-xl border-2 px-4 py-3 text-center text-2xl font-bold ${overrideError ? "border-red-400" : "border-gray-200"}`}
+                className={`rounded-xl border px-4 py-3 text-center text-2xl font-bold ${overrideError ? "border-red-400" : "border-gray-200"}`}
                 placeholder="e.g. 80" min={0} max={100}
               />
               {overrideError && <p className="text-red-500 text-sm mt-1">{overrideError}</p>}
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setOverrideTarget(null)} className="flex-1 border-2 border-gray-200 rounded-xl py-3">Cancel</Button>
-              <Button onClick={saveOverride} className="flex-1 bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl py-3">Save</Button>
+              <Button variant="outline" onClick={() => setOverrideTarget(null)} className="flex-1 border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl py-3">Cancel</Button>
+              <Button onClick={saveOverride} className="flex-1 bg-[#272757] hover:bg-[#505081] text-white rounded-xl py-3">Save</Button>
             </div>
           </Card>
         </div>

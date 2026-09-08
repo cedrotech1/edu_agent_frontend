@@ -153,17 +153,17 @@ export function StudentClassDetail() {
         { label: cls.name },
       ]} />
 
-      <Card className="bg-gradient-to-r from-[#272757] to-[#272757] rounded-2xl p-6 mb-6 text-white">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-white font-bold text-xl">
+      <Card className="bg-white rounded-xl border border-gray-100 shadow-sm mb-6 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-[#0F0E47]">{cls.name}</h2>
+        </div>
+        <div className="p-5 flex items-center gap-4">
+          <div className="w-12 h-12 bg-[#EDE9FE] rounded-xl flex items-center justify-center text-[#272757] font-bold text-lg">
             {cls.teacherInitials}
           </div>
-          <div>
-            <h2 className="text-xl font-bold mb-0.5">{cls.name}</h2>
-            <p className="text-white/80 text-sm">
-              {[cls.subject, cls.grade, cls.teacher].filter(Boolean).join(" · ")}
-            </p>
-          </div>
+          <p className="text-sm text-gray-500">
+            {[cls.subject, cls.grade, cls.teacher].filter(Boolean).join(" · ")}
+          </p>
         </div>
       </Card>
 
@@ -251,7 +251,7 @@ export function StudentClassDetail() {
                   <Button
                     onClick={() => navigate(`/student/results/${quiz.id}`)}
                     variant="outline"
-                    className="border border-[#10B981] text-[#10B981] hover:bg-[#10B981]/10 rounded-xl h-9 px-3 text-sm gap-1.5"
+                    className="border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-9 px-3 text-sm gap-1.5"
                   >
                     <Eye className="w-3.5 h-3.5" style={{ strokeWidth: 1.75 }} /> View Results
                   </Button>

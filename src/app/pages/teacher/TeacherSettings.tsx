@@ -4,67 +4,103 @@ import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Switch } from "../../components/ui/switch";
 import {
-  Camera,
   Lock,
   Mail,
-  Bell,
   AlertTriangle,
   LogOut,
-  Save,
+  Building2,
+  User,
+  Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError, initials } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { AppShell } from "../../components/AppShell";
 
+function pickProfile(user: Record<string, unknown> | null | undefined) {
+  if (!user) {
+    return { name: "", email: "", school: "", role: "", phone: "" };
+  }
+  const name =
+    (typeof user.name === "string" && user.name) ||
+    (typeof user.names === "string" && user.names) ||
+    "";
+  const email = typeof user.email === "string" ? user.email : "";
+  const school =
+    (typeof user.school === "string" && user.school) ||
+    (typeof user.institution === "string" && user.institution) ||
+    "";
+  const role = typeof user.role === "string" ? user.role : "";
+  const phone = typeof user.phone === "string" ? user.phone : "";
+  return { name, email, school, role, phone };
+}
+
 export function TeacherSettings() {
   const navigate = useNavigate();
-  const { user, logout, refreshMe } = useAuth();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [school, setSchool] = useState("");
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [resultsNotifications, setResultsNotifications] = useState(true);
+  const { user, logout, refreshMe, loading: authLoading } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(() => pickProfile(user as any));
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
-    setFullName(user.name || "");
-    setEmail(user.email || "");
-    setSchool(user.school || "");
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const me = await refreshMe();
+        if (!cancelled) {
+          setProfile(pickProfile((me || user) as any));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshMe]);
+
+  useEffect(() => {
+    if (user) setProfile(pickProfile(user as any));
   }, [user]);
 
-  const handleSaveProfile = async () => {
-    if (!user?.id) return;
+  const handlePasswordReset = async () => {
+    const email = profile.email?.trim();
+    if (!email) {
+      toast.error("No email on your profile");
+      return;
+    }
     try {
-      await api.users.update(user.id, { name: fullName, email, school });
-      await refreshMe();
-      toast.success("Profile updated successfully!", {
-        description: "Your changes have been saved.",
+      await api.auth.forgotPassword(email);
+      toast.success("Password reset link sent!", {
+        description: "Check your email for the reset link.",
       });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to update profile");
+      toast.error(err instanceof ApiError ? err.message : "Failed to send reset email");
     }
   };
 
-  const handlePasswordReset = () => {
-    toast.success("Password reset link sent!", {
-      description: "Check your email for the reset link.",
-    });
-  };
-
   const handlePasswordChange = async () => {
+    if (!currentPassword || !newPassword) {
+      toast.error("Please fill in all password fields");
+      return;
+    }
     if (newPassword !== confirmPassword) {
       toast.error("Passwords don't match!");
       return;
     }
+    if (newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters");
+      return;
+    }
+    setChangingPassword(true);
     try {
       await api.users.changePassword({
         currentPassword,
@@ -79,6 +115,8 @@ export function TeacherSettings() {
       setConfirmPassword("");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to change password");
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -104,88 +142,96 @@ export function TeacherSettings() {
     navigate("/login");
   };
 
+  const displayName = profile.name || "Teacher";
+  const avatar = initials(displayName);
+  const roleLabel =
+    profile.role === "teacher"
+      ? "Teacher"
+      : profile.role
+        ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
+        : "Teacher";
+
+  const infoRows = [
+    { label: "Full name", value: profile.name || "—", icon: User },
+    { label: "Email", value: profile.email || "—", icon: Mail },
+    { label: "School / Institution", value: profile.school || "—", icon: Building2 },
+    { label: "Role", value: roleLabel, icon: Shield },
+  ];
+
   return (
     <AppShell role="teacher" pageTitle="Settings">
-      <div className="max-w-4xl mx-auto">
-        {/* Profile Section */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-            Profile Information
-          </h2>
+      <div className="max-w-2xl mx-auto space-y-5">
+        {(loading || authLoading) && (
+          <p className="text-sm text-gray-500">Loading profile…</p>
+        )}
 
-          <div className="flex items-center gap-6 mb-8">
-            <div className="relative">
-              <div className="w-24 h-24 bg-[#6C63FF] rounded-full flex items-center justify-center text-white text-3xl font-semibold">
-                {initials(fullName || user?.name)}
+        {/* Profile overview */}
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-6 border-b border-gray-100 bg-gradient-to-b from-gray-50/80 to-white">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-[#272757] flex items-center justify-center text-white text-xl font-semibold shrink-0">
+                {avatar || "?"}
               </div>
-              <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center border-2 border-[#6C63FF] hover:bg-[#6C63FF] hover:text-white transition-colors">
-                <Camera className="w-4 h-4" />
-              </button>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-gray-800">Profile Photo</h3>
-              <p className="text-gray-600 text-sm">Click the camera icon to upload a new photo</p>
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-[#0F0E47] truncate">{displayName}</h2>
+                <p className="text-sm text-gray-500 truncate mt-0.5">
+                  {profile.email || "No email on file"}
+                </p>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EDE9FE] text-[#272757]">
+                    {roleLabel}
+                  </span>
+                  {profile.school ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                      <Building2 className="w-3 h-3" />
+                      {profile.school}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div>
-              <Label className="text-gray-700 mb-2 block">Full Name</Label>
-              <Input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="rounded-xl border-2 border-gray-200 px-4 py-3"
-              />
+          <div className="px-6 py-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider pt-4 pb-2">
+              Account details
+            </p>
+            <div className="divide-y divide-gray-100">
+              {infoRows.map(({ label, value, icon: Icon }) => (
+                <div key={label} className="flex items-start gap-3 py-3.5">
+                  <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 mt-0.5">
+                    <Icon className="w-4 h-4 text-[#272757]" strokeWidth={1.75} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+                    <p className="text-sm font-medium text-[#0F0E47] break-words">{value}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-
-            <div>
-              <Label className="text-gray-700 mb-2 block">Email</Label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="rounded-xl border-2 border-gray-200 px-4 py-3"
-              />
-            </div>
-
-            <div>
-              <Label className="text-gray-700 mb-2 block">School/Institution</Label>
-              <Input
-                value={school}
-                onChange={(e) => setSchool(e.target.value)}
-                className="rounded-xl border-2 border-gray-200 px-4 py-3"
-              />
-            </div>
-
-            <Button
-              onClick={handleSaveProfile}
-              className="bg-[#6C63FF] hover:bg-[#5851E6] text-white px-8 py-3 rounded-xl flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              Save Changes
-            </Button>
+            <p className="text-xs text-gray-400 pb-5 pt-1">
+              Profile details are managed by your account. Contact an admin to update your name or school.
+            </p>
           </div>
         </Card>
 
-        {/* Security Section */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-            <Lock className="w-6 h-6 text-[#6C63FF]" />
-            Security
-          </h2>
-
-          <div className="space-y-4">
+        {/* Security */}
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+            <Lock className="w-4 h-4 text-[#272757]" strokeWidth={1.75} />
+            <h2 className="text-sm font-semibold text-[#0F0E47]">Security</h2>
+          </div>
+          <div className="p-5 space-y-3">
             <Button
               onClick={() => setShowPasswordModal(true)}
-              className="w-full bg-[#6C63FF] hover:bg-[#5851E6] text-white py-3 rounded-xl"
+              className="w-full bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-10"
             >
               Change Password
             </Button>
-
             <Button
               onClick={handlePasswordReset}
               variant="outline"
-              className="w-full border-2 border-[#6C63FF] text-[#6C63FF] hover:bg-[#6C63FF]/10 py-3 rounded-xl"
+              className="w-full border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-10"
             >
               <Mail className="w-4 h-4 mr-2" />
               Reset Password via Email
@@ -193,148 +239,147 @@ export function TeacherSettings() {
           </div>
         </Card>
 
-        {/* Notification Preferences */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-            <Bell className="w-6 h-6 text-[#6C63FF]" />
-            Notification Preferences
-          </h2>
-
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-800">Email notifications for quiz deadlines</p>
-                <p className="text-sm text-gray-600">Get reminded when quizzes are approaching their deadline</p>
-              </div>
-              <Switch
-                checked={emailNotifications}
-                onCheckedChange={setEmailNotifications}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-800">Email notifications when results are ready</p>
-                <p className="text-sm text-gray-600">Get notified when students complete quizzes</p>
-              </div>
-              <Switch
-                checked={resultsNotifications}
-                onCheckedChange={setResultsNotifications}
-              />
-            </div>
+        {/* Account actions */}
+        <Card className="bg-white rounded-xl border border-red-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-red-100 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-500" strokeWidth={1.75} />
+            <h2 className="text-sm font-semibold text-red-600">Account</h2>
           </div>
-        </Card>
-
-        {/* Danger Zone */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md border-2 border-red-200">
-          <h2 className="text-2xl font-semibold text-red-600 mb-6 flex items-center gap-2">
-            <AlertTriangle className="w-6 h-6" />
-            Danger Zone
-          </h2>
-
-          <div className="space-y-4">
-            <Button
-              onClick={() => setShowDeleteModal(true)}
-              variant="outline"
-              className="w-full border-2 border-red-500 text-red-500 hover:bg-red-50 py-3 rounded-xl"
-            >
-              Delete Account
-            </Button>
-
+          <div className="p-5 space-y-3">
             <Button
               onClick={handleLogout}
               variant="outline"
-              className="w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-50 py-3 rounded-xl flex items-center justify-center gap-2"
+              className="w-full border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-10 gap-2"
             >
               <LogOut className="w-4 h-4" />
               Logout
+            </Button>
+            <Button
+              onClick={() => setShowDeleteModal(true)}
+              variant="outline"
+              className="w-full border border-red-200 text-red-500 hover:bg-red-50 rounded-xl h-10"
+            >
+              Delete Account
             </Button>
           </div>
         </Card>
       </div>
 
-      {/* Change Password Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">Change Password</h3>
-            
-            <div className="space-y-4 mb-6">
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] p-4"
+          onClick={() => setShowPasswordModal(false)}
+          role="presentation"
+        >
+          <Card
+            className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-semibold text-[#0F0E47]">Change Password</h3>
+              <button
+                type="button"
+                onClick={() => setShowPasswordModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-sm px-2 py-1 rounded-lg hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+            <form
+              autoComplete="off"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handlePasswordChange();
+              }}
+              className="space-y-4 mb-6"
+            >
               <div>
-                <Label className="text-gray-700 mb-2 block">Current Password</Label>
+                <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
+                  Current Password
+                </Label>
                 <Input
                   type="password"
+                  name="current-password"
+                  autoComplete="current-password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                  className="rounded-xl border border-gray-200 h-10"
                   placeholder="Enter current password"
                 />
               </div>
-
               <div>
-                <Label className="text-gray-700 mb-2 block">New Password</Label>
+                <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
+                  New Password
+                </Label>
                 <Input
                   type="password"
+                  name="new-password"
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                  className="rounded-xl border border-gray-200 h-10"
                   placeholder="Enter new password"
                 />
               </div>
-
               <div>
-                <Label className="text-gray-700 mb-2 block">Confirm New Password</Label>
+                <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
+                  Confirm New Password
+                </Label>
                 <Input
                   type="password"
+                  name="confirm-password"
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                  className="rounded-xl border border-gray-200 h-10"
                   placeholder="Confirm new password"
                 />
               </div>
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowPasswordModal(false)}
-                className="flex-1 border-2 border-gray-200 rounded-xl py-3"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handlePasswordChange}
-                className="flex-1 bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl py-3"
-              >
-                Update Password
-              </Button>
-            </div>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="flex-1 border border-gray-200 rounded-xl h-10"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={changingPassword}
+                  className="flex-1 bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-10"
+                >
+                  {changingPassword ? "Updating…" : "Update Password"}
+                </Button>
+              </div>
+            </form>
           </Card>
         </div>
       )}
 
-      {/* Delete Account Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-500" />
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 w-full max-w-md">
+            <div className="text-center mb-5">
+              <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <AlertTriangle className="w-6 h-6 text-red-500" strokeWidth={1.75} />
               </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">Delete Account</h3>
-              <p className="text-gray-600">This action cannot be undone. All your data will be permanently deleted.</p>
+              <h3 className="text-base font-semibold text-[#0F0E47] mb-1">Delete Account</h3>
+              <p className="text-xs text-gray-500">
+                This cannot be undone. All your data will be permanently deleted.
+              </p>
             </div>
-            
-            <div className="mb-6">
-              <Label className="text-gray-700 mb-2 block">Type <span className="font-mono font-bold">DELETE</span> to confirm</Label>
+            <div className="mb-5">
+              <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
+                Type <span className="font-mono font-semibold">DELETE</span> to confirm
+              </Label>
               <Input
                 value={deleteConfirmation}
                 onChange={(e) => setDeleteConfirmation(e.target.value)}
-                className="rounded-xl border-2 border-red-200 px-4 py-3 text-center font-mono"
+                className="rounded-xl border border-red-200 text-center font-mono h-10"
                 placeholder="DELETE"
               />
             </div>
-
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -342,13 +387,13 @@ export function TeacherSettings() {
                   setShowDeleteModal(false);
                   setDeleteConfirmation("");
                 }}
-                className="flex-1 border-2 border-gray-200 rounded-xl py-3"
+                className="flex-1 border border-gray-200 rounded-xl h-10"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleDeleteAccount}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl py-3"
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl h-10"
               >
                 Delete Account
               </Button>

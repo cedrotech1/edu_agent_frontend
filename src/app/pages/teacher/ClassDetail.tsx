@@ -54,6 +54,19 @@ interface ClassDetailData {
   quizzes: ClassQuiz[];
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function ClassDetail() {
   const navigate = useNavigate();
   const { classId } = useParams();
@@ -129,9 +142,11 @@ export function ClassDetail() {
     return (
       <AppShell role="teacher" pageTitle="Class Detail">
         <div className="flex items-center justify-center py-16">
-          <Card className="p-8 rounded-2xl text-center">
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center">
             <p className="text-gray-600 mb-4">Class not found</p>
-            <Button onClick={() => navigate("/teacher")}>Back to Dashboard</Button>
+            <Button onClick={() => navigate("/teacher")} className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl">
+              Back to Dashboard
+            </Button>
           </Card>
         </div>
       </AppShell>
@@ -155,20 +170,20 @@ export function ClassDetail() {
             Dashboard
           </Button>
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">{cls.name}</h2>
+            <h2 className="text-xl font-semibold text-[#0F0E47]">{cls.name}</h2>
             <p className="text-sm text-gray-500">{cls.subject} · {cls.level}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-[#6C63FF]/5 border-2 border-[#6C63FF]/20 rounded-xl px-4 py-2">
-            <span className="font-mono font-bold text-[#6C63FF] text-sm">{cls.code}</span>
-            <button onClick={copyCode} className="text-[#6C63FF] hover:text-[#5851E6]">
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2">
+            <span className="font-mono font-semibold text-[#272757] text-sm tracking-wide">{cls.code}</span>
+            <button onClick={copyCode} className="text-gray-400 hover:text-[#272757]">
               <Copy className="w-4 h-4" />
             </button>
           </div>
           <Button
             onClick={() => setShowAddModal(true)}
-            className="bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl gap-2"
+            className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl gap-2"
           >
             <UserPlus className="w-4 h-4" />
             Add Students
@@ -176,21 +191,39 @@ export function ClassDetail() {
         </div>
       </div>
 
-        <div className="grid grid-cols-3 gap-5 mb-8">
-          <Card className="bg-gradient-to-br from-[#6C63FF] to-[#5851E6] text-white rounded-2xl p-5 shadow-lg">
-            <Users className="w-8 h-8 text-white/50 mb-2" />
-            <p className="text-white/80 text-sm">Students</p>
-            <p className="text-4xl font-bold">{students.length}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-2">Students</p>
+                <p className="text-3xl font-semibold text-[#0F0E47] tracking-tight">{students.length}</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                <Users className="w-[18px] h-[18px] text-[#272757]" strokeWidth={1.75} />
+              </div>
+            </div>
           </Card>
-          <Card className="bg-gradient-to-br from-[#4FC3F7] to-[#29B5E8] text-white rounded-2xl p-5 shadow-lg">
-            <BookOpen className="w-8 h-8 text-white/50 mb-2" />
-            <p className="text-white/80 text-sm">Quizzes</p>
-            <p className="text-4xl font-bold">{quizzes.length}</p>
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-2">Quizzes</p>
+                <p className="text-3xl font-semibold text-[#0F0E47] tracking-tight">{quizzes.length}</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-[#EDE9FE] flex items-center justify-center shrink-0">
+                <BookOpen className="w-[18px] h-[18px] text-[#272757]" strokeWidth={1.75} />
+              </div>
+            </div>
           </Card>
-          <Card className="bg-gradient-to-br from-[#43E6B5] to-[#2DD49E] text-white rounded-2xl p-5 shadow-lg">
-            <TrendingUp className="w-8 h-8 text-white/50 mb-2" />
-            <p className="text-white/80 text-sm">Class Avg</p>
-            <p className="text-4xl font-bold">{classAvg}%</p>
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-2">Class Avg</p>
+                <p className="text-3xl font-semibold text-emerald-600 tracking-tight">{classAvg}%</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-[18px] h-[18px] text-emerald-600" strokeWidth={1.75} />
+              </div>
+            </div>
           </Card>
         </div>
 
@@ -199,10 +232,10 @@ export function ClassDetail() {
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-6 py-2.5 rounded-xl font-medium text-sm capitalize transition-all ${
+              className={`px-5 py-2 rounded-xl text-sm font-medium transition-all ${
                 tab === t
-                  ? "bg-[#6C63FF] text-white shadow"
-                  : "bg-white text-gray-600 border-2 border-gray-200 hover:border-[#6C63FF]"
+                  ? "bg-[#272757] text-white"
+                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
               }`}
             >
               {t === "students" ? `Students (${students.length})` : `Quizzes (${quizzes.length})`}
@@ -211,46 +244,51 @@ export function ClassDetail() {
         </div>
 
         {tab === "students" && (
-          <Card className="bg-white rounded-2xl shadow-md overflow-hidden">
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             {students.length === 0 ? (
               <div className="p-12 text-center">
-                <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">No students yet</h3>
-                <p className="text-gray-500 mb-6">Share the join code or invite by email</p>
-                <Button onClick={() => setShowAddModal(true)} className="bg-[#6C63FF] text-white rounded-xl">
+                <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <Users className="w-6 h-6 text-gray-400" strokeWidth={1.75} />
+                </div>
+                <h3 className="text-sm font-semibold text-[#0F0E47] mb-1">No students yet</h3>
+                <p className="text-xs text-gray-500 mb-5">Share the join code or invite by email</p>
+                <Button
+                  onClick={() => setShowAddModal(true)}
+                  className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-9 text-sm"
+                >
                   <UserPlus className="w-4 h-4 mr-2" /> Add Students
                 </Button>
               </div>
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Student</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Email</th>
-                    <th className="text-center px-6 py-4 text-sm font-semibold text-gray-600">Completed</th>
-                    <th className="text-center px-6 py-4 text-sm font-semibold text-gray-600">Avg Score</th>
+                  <tr className="border-b border-gray-100 bg-gray-50/80">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Student</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</th>
+                    <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Completed</th>
+                    <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Score</th>
                   </tr>
                 </thead>
                 <tbody>
                   {students.map((s, i) => {
                     const avg = s.avg ?? s.avgScore ?? 0;
                     return (
-                      <tr key={s.id} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? "" : "bg-gray-50/50"}`}>
-                        <td className="px-6 py-4">
+                      <tr key={s.id} className={`border-b border-gray-50 hover:bg-gray-50/60 transition-colors ${i % 2 === 0 ? "" : "bg-gray-50/30"}`}>
+                        <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-[#6C63FF] rounded-full flex items-center justify-center text-white text-xs font-bold">
+                            <div className="w-9 h-9 bg-[#272757] rounded-full flex items-center justify-center text-white text-xs font-semibold">
                               {s.initials || initials(s.name)}
                             </div>
-                            <span className="font-medium text-gray-800">{s.name}</span>
+                            <span className="text-sm font-medium text-[#0F0E47]">{s.name}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-600 text-sm">{s.email}</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="font-semibold text-gray-800">{s.completed ?? 0}</span>
+                        <td className="px-5 py-3.5 text-gray-600 text-sm">{s.email}</td>
+                        <td className="px-5 py-3.5 text-center">
+                          <span className="font-semibold text-[#0F0E47] text-sm">{s.completed ?? 0}</span>
                           <span className="text-gray-400 text-sm"> / {quizzes.length}</span>
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`font-bold text-lg ${avg >= 80 ? "text-[#43E6B5]" : avg >= 65 ? "text-[#4FC3F7]" : "text-[#FFD166]"}`}>
+                        <td className="px-5 py-3.5 text-center">
+                          <span className={`font-semibold text-sm ${avg >= 80 ? "text-emerald-600" : avg >= 65 ? "text-[#272757]" : "text-amber-600"}`}>
                             {avg}%
                           </span>
                         </td>
@@ -264,13 +302,18 @@ export function ClassDetail() {
         )}
 
         {tab === "quizzes" && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {quizzes.length === 0 ? (
-              <Card className="bg-white rounded-2xl p-12 shadow-md text-center">
-                <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">No quizzes yet</h3>
-                <p className="text-gray-500 mb-6">Create your first quiz for this class</p>
-                <Button onClick={() => navigate("/teacher/quiz-builder")} className="bg-[#6C63FF] text-white rounded-xl">
+              <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
+                <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <BookOpen className="w-6 h-6 text-gray-400" strokeWidth={1.75} />
+                </div>
+                <h3 className="text-sm font-semibold text-[#0F0E47] mb-1">No quizzes yet</h3>
+                <p className="text-xs text-gray-500 mb-5">Create your first quiz for this class</p>
+                <Button
+                  onClick={() => navigate("/teacher/quiz-builder")}
+                  className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-9 text-sm"
+                >
                   <Sparkles className="w-4 h-4 mr-2" /> Create Quiz
                 </Button>
               </Card>
@@ -282,34 +325,34 @@ export function ClassDetail() {
                   <Card
                     key={q.id}
                     onClick={() => navigate(`/teacher/results/${q.id}`)}
-                    className="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-[#6C63FF]/20"
+                    className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 hover:border-gray-200 hover:shadow transition-all cursor-pointer"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-[#6C63FF]/10 rounded-xl flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-[#6C63FF]" />
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 bg-gray-50 rounded-lg flex items-center justify-center shrink-0">
+                          <BookOpen className="w-4 h-4 text-[#272757]" strokeWidth={1.75} />
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-800">{q.title}</h3>
-                          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-semibold text-[#0F0E47] truncate">{q.title}</h3>
+                          <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
                             <Clock className="w-3.5 h-3.5" />
-                            <span>Due {q.deadline || "—"}</span>
+                            <span>Due {formatDateTime(q.deadline)}</span>
                             <span>·</span>
                             <span>{submissions} submitted</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 shrink-0">
                         {avg > 0 && (
                           <div className="text-right">
                             <p className="text-xs text-gray-500">Class avg</p>
-                            <p className="font-bold text-[#6C63FF]">{avg}%</p>
+                            <p className="text-sm font-semibold text-[#272757]">{avg}%</p>
                           </div>
                         )}
-                        <Badge className={`rounded-full ${
-                          q.status === "active" ? "bg-[#43E6B5]/10 text-[#43E6B5]" : "bg-gray-100 text-gray-500"
+                        <Badge className={`rounded-full text-[11px] ${
+                          q.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"
                         }`}>
-                          {q.status === "active" ? "✓ Active" : q.status}
+                          {q.status === "active" ? "Active" : q.status}
                         </Badge>
                       </div>
                     </div>
@@ -322,45 +365,45 @@ export function ClassDetail() {
 
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Add Students</h3>
-            <p className="text-gray-500 text-sm mb-6">Invite by email or share the class code</p>
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-7 w-full max-w-md">
+            <h3 className="text-base font-semibold text-[#0F0E47] mb-1">Add Students</h3>
+            <p className="text-xs text-gray-500 mb-5">Invite by email or share the class code</p>
 
-            <div className="bg-[#6C63FF]/5 border-2 border-[#6C63FF]/20 rounded-2xl p-5 mb-6">
-              <p className="text-sm font-medium text-gray-700 mb-2">Share class code</p>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 bg-white rounded-xl px-4 py-3 font-mono text-xl font-bold text-[#6C63FF] tracking-widest text-center border-2 border-[#6C63FF]/20">
+            <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-5">
+              <p className="text-xs font-medium text-gray-500 mb-2">Share class code</p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-white rounded-lg px-3 py-2.5 font-mono text-lg font-semibold text-[#272757] tracking-widest text-center border border-gray-100">
                   {cls.code}
                 </div>
                 <button
                   onClick={copyCode}
-                  className="p-3 bg-[#6C63FF] text-white rounded-xl hover:bg-[#5851E6]"
+                  className="p-2.5 bg-[#272757] hover:bg-[#505081] text-white rounded-xl"
                 >
-                  <Copy className="w-5 h-5" />
+                  <Copy className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            <div className="relative flex items-center gap-3 mb-6">
+            <div className="relative flex items-center gap-3 mb-5">
               <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-sm text-gray-400">or invite by email</span>
+              <span className="text-xs text-gray-400">or invite by email</span>
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
-            <div className="space-y-3 mb-6">
-              <Label className="text-gray-700">Student Email</Label>
-              <div className="flex gap-3">
+            <div className="space-y-2 mb-5">
+              <Label className="text-sm text-gray-700">Student Email</Label>
+              <div className="flex gap-2">
                 <Input
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="student@school.edu"
-                  className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                  className="rounded-xl border border-gray-200"
                   onKeyDown={(e) => e.key === "Enter" && sendInvite()}
                 />
                 <Button
                   onClick={sendInvite}
                   disabled={emailSent}
-                  className={`rounded-xl px-4 ${emailSent ? "bg-[#43E6B5]" : "bg-[#6C63FF] hover:bg-[#5851E6]"} text-white`}
+                  className={`rounded-xl px-4 ${emailSent ? "bg-emerald-500 hover:bg-emerald-600" : "bg-[#272757] hover:bg-[#505081]"} text-white`}
                 >
                   {emailSent ? <CheckCircle className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
                 </Button>
@@ -370,7 +413,7 @@ export function ClassDetail() {
             <Button
               onClick={() => setShowAddModal(false)}
               variant="outline"
-              className="w-full border-2 border-gray-200 rounded-xl py-3"
+              className="w-full border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl"
             >
               Done
             </Button>

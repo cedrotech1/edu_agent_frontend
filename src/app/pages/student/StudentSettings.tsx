@@ -4,12 +4,9 @@ import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Switch } from "../../components/ui/switch";
 import {
-  Camera,
   Lock,
   Mail,
-  Bell,
   AlertTriangle,
   LogOut,
   Save,
@@ -25,8 +22,6 @@ export function StudentSettings() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [school, setSchool] = useState("");
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [resultsNotifications, setResultsNotifications] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
@@ -54,10 +49,19 @@ export function StudentSettings() {
     }
   };
 
-  const handlePasswordReset = () => {
-    toast.success("Password reset link sent!", {
-      description: "Check your email for the reset link.",
-    });
+  const handlePasswordReset = async () => {
+    if (!email.trim()) {
+      toast.error("No email on your profile");
+      return;
+    }
+    try {
+      await api.auth.forgotPassword(email.trim());
+      toast.success("Password reset link sent!", {
+        description: "Check your email for the reset link.",
+      });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to send reset email");
+    }
   };
 
   const handlePasswordChange = async () => {
@@ -107,77 +111,72 @@ export function StudentSettings() {
   return (
     <AppShell role="student" pageTitle="Settings">
       <div className="max-w-4xl mx-auto">
-        {/* Profile Section */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-            Profile Information
-          </h2>
-
-          <div className="flex items-center gap-6 mb-8">
-            <div className="relative">
-              <div className="w-24 h-24 bg-[#4FC3F7] rounded-full flex items-center justify-center text-white text-3xl font-semibold">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm mb-6 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-[#0F0E47]">Profile Information</h2>
+          </div>
+          <div className="p-6">
+            <div className="flex items-center gap-6 mb-8">
+              <div className="w-24 h-24 bg-[#272757] rounded-full flex items-center justify-center text-white text-3xl font-semibold">
                 {initials(fullName || user?.name)}
               </div>
-              <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center border-2 border-[#4FC3F7] hover:bg-[#4FC3F7] hover:text-white transition-colors">
-                <Camera className="w-4 h-4" />
-              </button>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-gray-800">Profile Photo</h3>
-              <p className="text-gray-600 text-sm">Click the camera icon to upload a new photo</p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <Label className="text-gray-700 mb-2 block">Full Name</Label>
-              <Input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="rounded-xl border-2 border-gray-200 px-4 py-3"
-              />
+              <div>
+                <h3 className="text-lg font-semibold text-[#0F0E47]">Your profile</h3>
+                <p className="text-gray-500 text-sm">Update your name, email, and school below</p>
+              </div>
             </div>
 
-            <div>
-              <Label className="text-gray-700 mb-2 block">Email</Label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="rounded-xl border-2 border-gray-200 px-4 py-3"
-              />
-            </div>
+            <div className="space-y-6">
+              <div>
+                <Label className="text-gray-700 mb-2 block">Full Name</Label>
+                <Input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="rounded-xl border border-gray-200 px-4 py-3"
+                />
+              </div>
 
-            <div>
-              <Label className="text-gray-700 mb-2 block">School/Institution</Label>
-              <Input
-                value={school}
-                onChange={(e) => setSchool(e.target.value)}
-                className="rounded-xl border-2 border-gray-200 px-4 py-3"
-              />
-            </div>
+              <div>
+                <Label className="text-gray-700 mb-2 block">Email</Label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="rounded-xl border border-gray-200 px-4 py-3"
+                />
+              </div>
 
-            <Button
-              onClick={handleSaveProfile}
-              className="bg-[#4FC3F7] hover:bg-[#29B5E8] text-white px-8 py-3 rounded-xl flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              Save Changes
-            </Button>
+              <div>
+                <Label className="text-gray-700 mb-2 block">School/Institution</Label>
+                <Input
+                  value={school}
+                  onChange={(e) => setSchool(e.target.value)}
+                  className="rounded-xl border border-gray-200 px-4 py-3"
+                />
+              </div>
+
+              <Button
+                onClick={handleSaveProfile}
+                className="bg-[#272757] hover:bg-[#505081] text-white px-8 py-3 rounded-xl flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Save Changes
+              </Button>
+            </div>
           </div>
         </Card>
 
-        {/* Security Section */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-            <Lock className="w-6 h-6 text-[#4FC3F7]" />
-            Security
-          </h2>
-
-          <div className="space-y-4">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm mb-6 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-[#0F0E47] flex items-center gap-2">
+              <Lock className="w-4 h-4 text-[#272757]" />
+              Security
+            </h2>
+          </div>
+          <div className="p-6 space-y-4">
             <Button
               onClick={() => setShowPasswordModal(true)}
-              className="w-full bg-[#4FC3F7] hover:bg-[#29B5E8] text-white py-3 rounded-xl"
+              className="w-full bg-[#272757] hover:bg-[#505081] text-white py-3 rounded-xl"
             >
               Change Password
             </Button>
@@ -185,7 +184,7 @@ export function StudentSettings() {
             <Button
               onClick={handlePasswordReset}
               variant="outline"
-              className="w-full border-2 border-[#4FC3F7] text-[#4FC3F7] hover:bg-[#4FC3F7]/10 py-3 rounded-xl"
+              className="w-full border border-gray-200 text-[#272757] hover:bg-gray-50 py-3 rounded-xl"
             >
               <Mail className="w-4 h-4 mr-2" />
               Reset Password via Email
@@ -193,50 +192,18 @@ export function StudentSettings() {
           </div>
         </Card>
 
-        {/* Notification Preferences */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-            <Bell className="w-6 h-6 text-[#4FC3F7]" />
-            Notification Preferences
-          </h2>
-
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-800">Email notifications for quiz deadlines</p>
-                <p className="text-sm text-gray-600">Get reminded when quizzes are approaching their deadline</p>
-              </div>
-              <Switch
-                checked={emailNotifications}
-                onCheckedChange={setEmailNotifications}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-800">Email notifications when results are ready</p>
-                <p className="text-sm text-gray-600">Get notified when your quiz results are graded</p>
-              </div>
-              <Switch
-                checked={resultsNotifications}
-                onCheckedChange={setResultsNotifications}
-              />
-            </div>
+        <Card className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-red-100">
+            <h2 className="text-sm font-semibold text-red-600 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Danger Zone
+            </h2>
           </div>
-        </Card>
-
-        {/* Danger Zone */}
-        <Card className="bg-white rounded-3xl p-8 shadow-md border-2 border-red-200">
-          <h2 className="text-2xl font-semibold text-red-600 mb-6 flex items-center gap-2">
-            <AlertTriangle className="w-6 h-6" />
-            Danger Zone
-          </h2>
-
-          <div className="space-y-4">
+          <div className="p-6 space-y-4">
             <Button
               onClick={() => setShowDeleteModal(true)}
               variant="outline"
-              className="w-full border-2 border-red-500 text-red-500 hover:bg-red-50 py-3 rounded-xl"
+              className="w-full border border-red-200 text-red-500 hover:bg-red-50 py-3 rounded-xl"
             >
               Delete Account
             </Button>
@@ -244,7 +211,7 @@ export function StudentSettings() {
             <Button
               onClick={handleLogout}
               variant="outline"
-              className="w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-50 py-3 rounded-xl flex items-center justify-center gap-2"
+              className="w-full border border-gray-200 text-[#272757] hover:bg-gray-50 py-3 rounded-xl flex items-center justify-center gap-2"
             >
               <LogOut className="w-4 h-4" />
               Logout
@@ -253,11 +220,10 @@ export function StudentSettings() {
         </Card>
       </div>
 
-      {/* Change Password Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">Change Password</h3>
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 w-full max-w-md">
+            <h3 className="text-sm font-semibold text-[#0F0E47] mb-6">Change Password</h3>
             
             <div className="space-y-4 mb-6">
               <div>
@@ -266,7 +232,7 @@ export function StudentSettings() {
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                  className="rounded-xl border border-gray-200 px-4 py-3"
                   placeholder="Enter current password"
                 />
               </div>
@@ -277,7 +243,7 @@ export function StudentSettings() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                  className="rounded-xl border border-gray-200 px-4 py-3"
                   placeholder="Enter new password"
                 />
               </div>
@@ -288,7 +254,7 @@ export function StudentSettings() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="rounded-xl border-2 border-gray-200 px-4 py-3"
+                  className="rounded-xl border border-gray-200 px-4 py-3"
                   placeholder="Confirm new password"
                 />
               </div>
@@ -298,13 +264,13 @@ export function StudentSettings() {
               <Button
                 variant="outline"
                 onClick={() => setShowPasswordModal(false)}
-                className="flex-1 border-2 border-gray-200 rounded-xl py-3"
+                className="flex-1 border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl py-3"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handlePasswordChange}
-                className="flex-1 bg-[#4FC3F7] hover:bg-[#29B5E8] text-white rounded-xl py-3"
+                className="flex-1 bg-[#272757] hover:bg-[#505081] text-white rounded-xl py-3"
               >
                 Update Password
               </Button>
@@ -313,16 +279,15 @@ export function StudentSettings() {
         </div>
       )}
 
-      {/* Delete Account Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md">
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 w-full max-w-md">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-8 h-8 text-red-500" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">Delete Account</h3>
-              <p className="text-gray-600">This action cannot be undone. All your data will be permanently deleted.</p>
+              <h3 className="text-sm font-semibold text-[#0F0E47] mb-2">Delete Account</h3>
+              <p className="text-gray-500">This action cannot be undone. All your data will be permanently deleted.</p>
             </div>
             
             <div className="mb-6">
@@ -330,7 +295,7 @@ export function StudentSettings() {
               <Input
                 value={deleteConfirmation}
                 onChange={(e) => setDeleteConfirmation(e.target.value)}
-                className="rounded-xl border-2 border-red-200 px-4 py-3 text-center font-mono"
+                className="rounded-xl border border-red-200 px-4 py-3 text-center font-mono"
                 placeholder="DELETE"
               />
             </div>
@@ -342,7 +307,7 @@ export function StudentSettings() {
                   setShowDeleteModal(false);
                   setDeleteConfirmation("");
                 }}
-                className="flex-1 border-2 border-gray-200 rounded-xl py-3"
+                className="flex-1 border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl py-3"
               >
                 Cancel
               </Button>

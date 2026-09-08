@@ -8,6 +8,7 @@ import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { toast } from "sonner";
 import { api, ApiError, initials } from "@/lib/api";
+import { getQuizAccessCode } from "@/lib/quizAccess";
 
 type LobbyStatus = "open" | "completed" | "closed";
 
@@ -72,7 +73,8 @@ export function QuizLobby() {
     (async () => {
       setLoading(true);
       try {
-        const res = await api.quizzes.get(quizId);
+        const accessCode = getQuizAccessCode(quizId);
+        const res = await api.quizzes.get(quizId, { accessCode });
         const q: any = res.data || {};
         let studentCount = 0;
         const classId = q.classId || q.class?.id;
@@ -113,6 +115,9 @@ export function QuizLobby() {
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : "Failed to load quiz");
         if (!cancelled) setQuiz(null);
+        if (err instanceof ApiError && err.status === 403) {
+          navigate("/student/quizzes", { replace: true });
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -124,7 +129,7 @@ export function QuizLobby() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#E8E7FF] to-[#D9F5FF] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
         <div className="text-center text-gray-500">
           <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin opacity-60" />
           <p className="text-sm">Loading quiz…</p>
@@ -135,8 +140,8 @@ export function QuizLobby() {
 
   if (!quiz) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#E8E7FF] to-[#D9F5FF] flex items-center justify-center p-4">
-        <Card className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-xl">
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 max-w-md w-full text-center shadow-xl">
           <p className="font-semibold text-gray-700 mb-2">Quiz not found</p>
           <Button onClick={() => navigate("/student/quizzes")} className="mt-2 bg-[#272757] text-white rounded-xl">
             Back to My Quizzes
@@ -151,7 +156,7 @@ export function QuizLobby() {
   const deadlineBannerClass =
     quiz.status === "closed" ? "bg-red-50 border border-red-200 text-red-700"
     : isClosingSoon            ? "bg-orange-50 border border-orange-200 text-orange-700"
-    : "bg-[#10B981]/10 border border-[#10B981]/30 text-[#2ca882]";
+    : "bg-[#10B981]/10 border border-[#10B981]/30 text-[#059669]";
   const deadlineIcon =
     quiz.status === "closed" ? <Lock className="w-4 h-4 shrink-0" style={{ strokeWidth: 1.75 }} />
     : isClosingSoon          ? <AlertCircle className="w-4 h-4 shrink-0" style={{ strokeWidth: 1.75 }} />
@@ -162,7 +167,7 @@ export function QuizLobby() {
     : `Open until ${quiz.deadline} · ${formatCountdown(quiz.deadlineMs)}`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#E8E7FF] to-[#D9F5FF] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
         <button
           onClick={() => navigate("/student/quizzes")}
@@ -171,8 +176,8 @@ export function QuizLobby() {
           <ArrowLeft className="w-4 h-4" style={{ strokeWidth: 1.75 }} /> Back to My Quizzes
         </button>
 
-        <Card className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-          <div className="bg-gradient-to-r from-[#272757] to-[#272757] p-6 text-white">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-[#272757] p-6 text-white">
             <Badge className="bg-white/20 text-white border-white/30 rounded-full text-xs mb-3">{quiz.subject || "Quiz"}</Badge>
             <h1 className="text-2xl font-bold mb-1">{quiz.title}</h1>
             <p className="text-white/80 text-sm">{quiz.className}</p>

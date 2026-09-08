@@ -8,6 +8,7 @@ import { Progress } from "../../components/ui/progress";
 import { Clock, Sparkles, AlertCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { getQuizAccessCode, clearQuizAccessCode } from "@/lib/quizAccess";
 
 interface QuizQuestion {
   id: number;
@@ -28,6 +29,8 @@ interface QuizData {
   deadline?: string;
   status?: string;
   hasSubmitted?: boolean;
+  accessMethod?: string;
+  accessLabel?: string;
   questions: QuizQuestion[];
 }
 
@@ -60,7 +63,8 @@ export function QuizTaking() {
     (async () => {
       setLoading(true);
       try {
-        const res = await api.quizzes.get(quizId);
+        const accessCode = getQuizAccessCode(quizId);
+        const res = await api.quizzes.get(quizId, { accessCode });
         const data = res.data as QuizData & Record<string, unknown>;
         if (data.hasSubmitted) {
           navigate(`/student/results/${quizId}`, { replace: true });
@@ -76,7 +80,12 @@ export function QuizTaking() {
         });
         setTimeLeft((data.timeLimit || 30) * 60);
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Failed to load quiz");
+        const message =
+          err instanceof ApiError ? err.message : "Failed to load quiz";
+        toast.error(message);
+        if (err instanceof ApiError && err.status === 403) {
+          navigate("/student/quizzes", { replace: true });
+        }
       } finally {
         setLoading(false);
       }
@@ -113,7 +122,12 @@ export function QuizTaking() {
       const timeTakenSeconds = startedAt
         ? Math.max(1, Math.round((Date.now() - startedAt) / 1000))
         : undefined;
-      await api.quizzes.submit(quizId, { answers, timeTakenSeconds });
+      await api.quizzes.submit(quizId, {
+        answers,
+        timeTakenSeconds,
+        accessCode: getQuizAccessCode(quizId),
+      });
+      clearQuizAccessCode(quizId);
       setStage("submitted");
       if (!auto) toast.success("Quiz submitted!");
       setTimeout(() => navigate(`/student/results/${quizId}`), 1500);
@@ -165,8 +179,8 @@ export function QuizTaking() {
 
   if (isClosed) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#F9F9FF] via-[#E8E7FF] to-[#D9F5FF] flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 text-center w-full max-w-lg">
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center w-full max-w-lg">
           <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <Lock className="w-10 h-10 text-red-500" />
           </div>
@@ -174,7 +188,7 @@ export function QuizTaking() {
           <p className="text-gray-600 mb-8">This quiz is no longer accepting submissions.</p>
           <button
             onClick={() => navigate("/student")}
-            className="bg-[#6C63FF] hover:bg-[#5851E6] text-white px-8 py-4 rounded-2xl text-lg font-semibold"
+            className="bg-[#272757] hover:bg-[#505081] text-white px-8 py-4 rounded-2xl text-lg font-semibold"
           >
             Back to Dashboard
           </button>
@@ -185,11 +199,11 @@ export function QuizTaking() {
 
   if (stage === "lobby") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#F9F9FF] via-[#E8E7FF] to-[#D9F5FF] flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-8">
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+        <Card className="w-full max-w-2xl bg-white rounded-xl border border-gray-100 shadow-sm p-8">
           <div className="text-center">
-            <div className="w-20 h-20 bg-[#4FC3F7]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Sparkles className="w-10 h-10 text-[#4FC3F7]" />
+            <div className="w-20 h-20 bg-[#272757]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Sparkles className="w-10 h-10 text-[#272757]" />
             </div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">{quiz.title}</h1>
             <p className="text-lg text-gray-600 mb-8">
@@ -201,20 +215,20 @@ export function QuizTaking() {
 
             <div className="grid grid-cols-2 gap-6 mb-8">
               <div className="bg-gray-50 rounded-2xl p-6">
-                <Clock className="w-8 h-8 text-[#6C63FF] mx-auto mb-2" />
+                <Clock className="w-8 h-8 text-[#272757] mx-auto mb-2" />
                 <p className="text-gray-600 text-sm">Time Limit</p>
                 <p className="text-2xl font-bold text-gray-800">{quiz.timeLimit || 30} min</p>
               </div>
               <div className="bg-gray-50 rounded-2xl p-6">
-                <Sparkles className="w-8 h-8 text-[#43E6B5] mx-auto mb-2" />
+                <Sparkles className="w-8 h-8 text-[#10B981] mx-auto mb-2" />
                 <p className="text-gray-600 text-sm">Questions</p>
                 <p className="text-2xl font-bold text-gray-800">{quiz.questions.length}</p>
               </div>
             </div>
 
-            <div className="bg-[#FFD166]/10 border-2 border-[#FFD166]/30 rounded-2xl p-4 mb-8">
+            <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-2xl p-4 mb-8">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-[#FFD166] mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-[#F59E0B] mt-0.5" />
                 <div className="text-left">
                   <p className="font-semibold text-gray-800 mb-1">Important Reminder</p>
                   <p className="text-sm text-gray-700">
@@ -226,7 +240,7 @@ export function QuizTaking() {
 
             <Button
               onClick={handleStart}
-              className="w-full bg-gradient-to-r from-[#4FC3F7] to-[#29B5E8] hover:from-[#29B5E8] hover:to-[#1AA3D9] text-white py-6 rounded-2xl text-lg font-semibold shadow-lg"
+              className="w-full bg-gradient-to-r from-[#272757] to-[#505081] hover:from-[#505081] hover:to-[#505081] text-white py-6 rounded-2xl text-lg font-semibold shadow-lg"
             >
               Start Quiz 🚀
             </Button>
@@ -238,10 +252,10 @@ export function QuizTaking() {
 
   if (stage === "submitted") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#F9F9FF] via-[#E8E7FF] to-[#D9F5FF] flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-8 text-center">
-          <div className="w-24 h-24 bg-[#43E6B5]/10 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
-            <Sparkles className="w-12 h-12 text-[#43E6B5]" />
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+        <Card className="w-full max-w-2xl bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center">
+          <div className="w-24 h-24 bg-[#10B981]/10 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+            <Sparkles className="w-12 h-12 text-[#10B981]" />
           </div>
           <h1 className="text-4xl font-bold text-gray-800 mb-4">Quiz Submitted! 🎉</h1>
           <p className="text-xl text-gray-600 mb-8">
@@ -249,7 +263,7 @@ export function QuizTaking() {
           </p>
           <Button
             onClick={() => navigate(`/student/results/${quizId}`)}
-            className="bg-[#6C63FF] hover:bg-[#5851E6] text-white px-8 py-6 rounded-2xl text-lg font-semibold"
+            className="bg-[#272757] hover:bg-[#505081] text-white px-8 py-6 rounded-2xl text-lg font-semibold"
           >
             View Results
           </Button>
@@ -267,8 +281,8 @@ export function QuizTaking() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-gray-800">{quiz.title}</h1>
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${isLow ? "bg-red-50 animate-pulse" : "bg-[#FFD166]/10"}`}>
-              <Clock className={`w-5 h-5 ${isLow ? "text-red-500" : "text-[#FFD166]"}`} />
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${isLow ? "bg-red-50 animate-pulse" : "bg-[#F59E0B]/10"}`}>
+              <Clock className={`w-5 h-5 ${isLow ? "text-red-500" : "text-[#F59E0B]"}`} />
               <span className={`font-mono font-semibold ${isLow ? "text-red-500" : "text-gray-800"}`}>
                 {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
               </span>
@@ -288,8 +302,8 @@ export function QuizTaking() {
           <Progress value={progress} className="h-2 bg-gray-200" />
         </div>
 
-        <Card className="bg-white rounded-3xl p-8 shadow-lg mb-6">
-          <Badge className="bg-[#6C63FF]/10 text-[#6C63FF] rounded-full mb-4">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
+          <Badge className="bg-[#272757]/10 text-[#272757] rounded-full mb-4">
             Question {currentQuestion + 1}
           </Badge>
           <h2 className="text-2xl font-semibold text-gray-800 mb-6">{question.question}</h2>
@@ -302,8 +316,8 @@ export function QuizTaking() {
                   onClick={() => handleAnswer(question.id, index)}
                   className={`w-full text-left px-6 py-4 rounded-2xl border-2 transition-all ${
                     answers[question.id] === index
-                      ? "bg-[#4FC3F7]/10 border-[#4FC3F7] text-[#4FC3F7]"
-                      : "bg-gray-50 border-gray-200 hover:border-[#4FC3F7]/50"
+                      ? "bg-[#272757]/10 border-[#272757] text-[#272757]"
+                      : "bg-gray-50 border-gray-200 hover:border-[#272757]/50"
                   }`}
                 >
                   <span className="font-medium">{option}</span>
@@ -317,12 +331,12 @@ export function QuizTaking() {
               <Textarea
                 value={answers[question.id] || ""}
                 onChange={(e) => handleAnswer(question.id, e.target.value)}
-                className="w-full min-h-[200px] rounded-2xl border-2 border-gray-200 focus:border-[#4FC3F7] px-4 py-4"
+                className="w-full min-h-[200px] rounded-2xl border border-gray-200 focus:border-[#272757] px-4 py-4"
                 placeholder="Type your answer here..."
               />
-              <div className="mt-4 bg-[#4FC3F7]/10 border-2 border-[#4FC3F7]/30 rounded-xl p-3">
+              <div className="mt-4 bg-[#272757]/10 border border-[#272757]/30 rounded-xl p-3">
                 <div className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-[#4FC3F7] mt-0.5" />
+                  <Sparkles className="w-4 h-4 text-[#272757] mt-0.5" />
                   <p className="text-sm text-gray-700">
                     Write in your own words — AI will review 🤖 No copy-paste allowed!
                   </p>
@@ -337,8 +351,8 @@ export function QuizTaking() {
                 onClick={() => handleAnswer(question.id, true)}
                 className={`px-6 py-4 rounded-2xl border-2 font-semibold transition-all ${
                   answers[question.id] === true
-                    ? "bg-[#43E6B5]/10 border-[#43E6B5] text-[#43E6B5]"
-                    : "bg-gray-50 border-gray-200 hover:border-[#43E6B5]/50"
+                    ? "bg-[#10B981]/10 border-[#10B981] text-[#10B981]"
+                    : "bg-gray-50 border-gray-200 hover:border-[#10B981]/50"
                 }`}
               >
                 True
@@ -371,14 +385,14 @@ export function QuizTaking() {
             <Button
               onClick={() => submitQuiz(false)}
               disabled={submitting}
-              className="bg-[#43E6B5] hover:bg-[#2DD49E] text-white px-8 py-3 rounded-xl font-semibold"
+              className="bg-[#10B981] hover:bg-[#059669] text-white px-8 py-3 rounded-xl font-semibold"
             >
               {submitting ? "Submitting…" : "Submit Quiz 🎉"}
             </Button>
           ) : (
             <Button
               onClick={handleNext}
-              className="bg-[#4FC3F7] hover:bg-[#29B5E8] text-white px-6 py-3 rounded-xl"
+              className="bg-[#272757] hover:bg-[#505081] text-white px-6 py-3 rounded-xl"
             >
               Next Question
             </Button>

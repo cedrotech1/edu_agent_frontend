@@ -5,7 +5,7 @@ import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Switch } from "../../components/ui/switch";
-import { ArrowLeft, Settings, Sparkles, Bell, CreditCard, Upload, Sliders } from "lucide-react";
+import { ArrowLeft, Settings, Sparkles, Bell, Sliders } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/AppShell";
 import { api, ApiError } from "@/lib/api";
@@ -60,8 +60,8 @@ export function AdminPlatformSettings() {
   };
 
   const sensitivityOptions: { value: Sensitivity; label: string; desc: string; color: string }[] = [
-    { value: "low", label: "Low", desc: "Flag only very suspicious answers (< 50% confidence)", color: "#43E6B5" },
-    { value: "medium", label: "Medium", desc: "Flag answers below 80% confidence (recommended)", color: "#FFD166" },
+    { value: "low", label: "Low", desc: "Flag only very suspicious answers (< 50% confidence)", color: "#10B981" },
+    { value: "medium", label: "Medium", desc: "Flag answers below 80% confidence (recommended)", color: "#F59E0B" },
     { value: "high", label: "High", desc: "Flag all answers below 90% for manual review", color: "#FF6B6B" },
   ];
 
@@ -80,9 +80,9 @@ export function AdminPlatformSettings() {
       <div className="max-w-4xl mx-auto space-y-6">
         {loading && <p className="text-gray-500">Loading settings…</p>}
         {/* Platform identity */}
-        <Card className="bg-white rounded-2xl p-6 shadow-md">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center gap-3 mb-6">
-            <Settings className="w-5 h-5 text-[#6C63FF]" />
+            <Settings className="w-5 h-5 text-[#272757]" />
             <h2 className="text-lg font-semibold text-gray-800">Platform Identity</h2>
           </div>
           <div className="space-y-5">
@@ -91,31 +91,25 @@ export function AdminPlatformSettings() {
               <Input
                 value={platformName}
                 onChange={(e) => setPlatformName(e.target.value)}
-                className="rounded-xl border-2 border-gray-200 px-4 py-3 max-w-sm"
+                className="rounded-xl border border-gray-200 px-4 py-3 max-w-sm"
               />
             </div>
             <div>
               <Label className="mb-2 block text-gray-700">Platform Logo</Label>
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-[#6C63FF]/10 rounded-2xl flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-[#6C63FF]" />
+                <div className="w-16 h-16 bg-[#272757]/10 rounded-2xl flex items-center justify-center">
+                  <Sparkles className="w-8 h-8 text-[#272757]" />
                 </div>
-                <button
-                  onClick={() => toast.info("Logo upload coming soon")}
-                  className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-[#6C63FF]/40 rounded-xl text-[#6C63FF] hover:border-[#6C63FF] transition-colors text-sm font-medium"
-                >
-                  <Upload className="w-4 h-4" />
-                  Upload Logo
-                </button>
+                <p className="text-sm text-gray-500">QuizMind default logo</p>
               </div>
             </div>
           </div>
         </Card>
 
         {/* AI grading sensitivity */}
-        <Card className="bg-white rounded-2xl p-6 shadow-md">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center gap-3 mb-6">
-            <Sliders className="w-5 h-5 text-[#6C63FF]" />
+            <Sliders className="w-5 h-5 text-[#272757]" />
             <h2 className="text-lg font-semibold text-gray-800">AI Grading Sensitivity</h2>
           </div>
           <p className="text-gray-600 text-sm mb-5">
@@ -128,7 +122,7 @@ export function AdminPlatformSettings() {
                 onClick={() => setSensitivity(opt.value)}
                 className={`p-5 rounded-2xl border-2 text-left transition-all ${
                   sensitivity === opt.value
-                    ? "border-[#6C63FF] bg-[#6C63FF]/5"
+                    ? "border-[#272757] bg-[#272757]/5"
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
@@ -137,7 +131,7 @@ export function AdminPlatformSettings() {
                 <p className="text-xs text-gray-500 leading-relaxed">{opt.desc}</p>
                 {sensitivity === opt.value && (
                   <div className="mt-3">
-                    <span className="text-xs font-medium text-[#6C63FF] bg-[#6C63FF]/10 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-medium text-[#272757] bg-[#272757]/10 px-2 py-0.5 rounded-full">
                       Selected
                     </span>
                   </div>
@@ -148,9 +142,9 @@ export function AdminPlatformSettings() {
         </Card>
 
         {/* Email notifications */}
-        <Card className="bg-white rounded-2xl p-6 shadow-md">
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center gap-3 mb-6">
-            <Bell className="w-5 h-5 text-[#6C63FF]" />
+            <Bell className="w-5 h-5 text-[#272757]" />
             <h2 className="text-lg font-semibold text-gray-800">Email Notifications</h2>
           </div>
           <div className="space-y-1">
@@ -170,47 +164,10 @@ export function AdminPlatformSettings() {
           </div>
         </Card>
 
-        {/* Billing */}
-        <Card className="bg-white rounded-2xl p-6 shadow-md">
-          <div className="flex items-center gap-3 mb-6">
-            <CreditCard className="w-5 h-5 text-[#6C63FF]" />
-            <h2 className="text-lg font-semibold text-gray-800">Subscription & Billing</h2>
-          </div>
-          <div className="bg-gradient-to-r from-[#6C63FF] to-[#4FC3F7] rounded-2xl p-6 text-white mb-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-white/80 text-sm mb-1">Current Plan</p>
-                <p className="text-2xl font-bold">Pro School Plan</p>
-              </div>
-              <span className="bg-white/20 text-white text-sm px-3 py-1 rounded-full font-medium">Active</span>
-            </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              {[
-                { label: "Teachers", value: "50" },
-                { label: "Students", value: "Unlimited" },
-                { label: "Quizzes/mo", value: "500" },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <p className="text-2xl font-bold">{value}</p>
-                  <p className="text-white/70 text-sm">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <Button variant="outline" className="flex-1 border-2 border-[#6C63FF] text-[#6C63FF] rounded-xl py-3" onClick={() => navigate("/admin/billing")}>
-              Manage Billing
-            </Button>
-            <Button className="flex-1 bg-[#6C63FF] hover:bg-[#5851E6] text-white rounded-xl py-3" onClick={() => navigate("/admin/subscription")}>
-              Upgrade Plan
-            </Button>
-          </div>
-        </Card>
-
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-[#43E6B5] hover:bg-[#2DD49E] text-white py-5 rounded-2xl text-lg font-semibold shadow-lg"
+          className="w-full bg-[#272757] hover:bg-[#505081] text-white py-5 rounded-xl text-base font-semibold"
         >
           {saving ? "Saving..." : "Save All Settings"}
         </Button>

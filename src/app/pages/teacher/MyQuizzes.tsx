@@ -6,17 +6,13 @@ import {
   Search,
   Eye,
   Pencil,
-  Trash2,
-  Copy,
   Filter,
   X,
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
-  CheckSquare,
-  Square,
-  AlertCircle,
   Loader2,
+  Copy,
 } from "lucide-react";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -34,6 +30,7 @@ type QuizStatus = "active" | "draft" | "closed" | "scheduled";
 interface Quiz {
   id: number;
   title: string;
+  code: string;
   className: string;
   subject: string;
   grade: string;
@@ -64,6 +61,7 @@ function mapQuiz(row: any): Quiz {
   return {
     id: row.id,
     title: row.title || "Untitled quiz",
+    code: row.code || "—",
     className: row.className || row.class || "—",
     subject: row.subject || "",
     grade: row.grade || row.subLevel || "",
@@ -86,8 +84,6 @@ export function MyQuizzes() {
   const [sortKey, setSortKey] = useState<SortKey>("deadline");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<number[]>([]);
-  const [deleteBulkOpen, setDeleteBulkOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -121,7 +117,8 @@ export function MyQuizzes() {
     let result = quizzes.filter((q) => {
       const matchSearch =
         q.title.toLowerCase().includes(search.toLowerCase()) ||
-        q.className.toLowerCase().includes(search.toLowerCase());
+        q.className.toLowerCase().includes(search.toLowerCase()) ||
+        q.code.toLowerCase().includes(search.toLowerCase());
       const matchClass = filterClass === "all" || q.className === filterClass;
       const matchStatus = filterStatus === "all" || q.status === filterStatus;
       return matchSearch && matchClass && matchStatus;
@@ -138,22 +135,6 @@ export function MyQuizzes() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const pageIds = pageData.map((q) => q.id);
-  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.includes(id));
-
-  const toggleRow = (id: number) =>
-    setSelected((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
-
-  const togglePage = () =>
-    setSelected((prev) =>
-      allPageSelected ? prev.filter((id) => !pageIds.includes(id)) : [...new Set([...prev, ...pageIds])],
-    );
-
-  const pendingAction = (label: string) => {
-    toast.message(`${label} pending`, {
-      description: "This action is not wired to an API yet.",
-    });
-  };
 
   const SortBtn = ({ col }: { col: SortKey }) => (
     <button onClick={() => handleSort(col)} className="ml-1 inline-flex items-center text-gray-400 hover:text-gray-600">
@@ -172,6 +153,12 @@ export function MyQuizzes() {
     const d = new Date(deadline);
     if (Number.isNaN(d.getTime())) return "—";
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const copyCode = (code: string) => {
+    if (!code || code === "—") return;
+    navigator.clipboard.writeText(code);
+    toast.success("Quiz code copied", { description: code });
   };
 
   return (
@@ -248,15 +235,6 @@ export function MyQuizzes() {
             <X className="w-3 h-3" /> Clear
           </button>
         )}
-
-        {selected.length > 0 && (
-          <button
-            onClick={() => setDeleteBulkOpen(true)}
-            className="ml-auto flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 px-3 py-1.5 rounded-xl hover:bg-red-50 border border-red-200 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" /> Delete {selected.length} selected
-          </button>
-        )}
       </div>
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -298,13 +276,11 @@ export function MyQuizzes() {
           <table className="w-full text-sm min-w-[750px] qm-table">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/80">
-                <th className="px-4 py-3 w-10">
-                  <button onClick={togglePage} className="text-gray-400 hover:text-[#272757]">
-                    {allPageSelected ? <CheckSquare className="w-4 h-4 text-[#272757]" /> : <Square className="w-4 h-4" />}
-                  </button>
-                </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Title <SortBtn col="title" />
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Code
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Class <SortBtn col="className" />
@@ -359,25 +335,25 @@ export function MyQuizzes() {
                 pageData.map((q) => (
                   <tr
                     key={q.id}
-                    className={`border-b border-gray-50 hover:bg-[#EDE9FE] transition-colors ${
-                      selected.includes(q.id) ? "bg-[#EDE9FE]" : ""
-                    }`}
+                    className="border-b border-gray-50 hover:bg-[#EDE9FE] transition-colors"
                   >
-                    <td className="px-4 py-3.5 w-10">
-                      <button onClick={() => toggleRow(q.id)} className="text-gray-400 hover:text-[#272757]">
-                        {selected.includes(q.id) ? (
-                          <CheckSquare className="w-4 h-4 text-[#272757]" />
-                        ) : (
-                          <Square className="w-4 h-4" />
-                        )}
-                      </button>
-                    </td>
                     <td className="px-4 py-3.5 font-medium text-gray-800 max-w-[200px]">
                       <p className="truncate">{q.title}</p>
                       <p className="text-xs text-gray-400">
                         {q.subject}
                         {q.grade ? ` · ${q.grade}` : ""}
                       </p>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <button
+                        type="button"
+                        title="Copy quiz code"
+                        onClick={() => copyCode(q.code)}
+                        className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-[#272757] bg-[#EDE9FE] hover:bg-[#ddd6fe] rounded-lg px-2.5 py-1.5 transition-colors"
+                      >
+                        {q.code}
+                        {q.code !== "—" && <Copy className="w-3 h-3 opacity-70" />}
+                      </button>
                     </td>
                     <td className="px-4 py-3.5 text-gray-600 max-w-[160px]">
                       <p className="truncate text-sm">{q.className}</p>
@@ -403,24 +379,10 @@ export function MyQuizzes() {
                         </button>
                         <button
                           title="Edit quiz"
-                          onClick={() => navigate("/teacher/quiz-builder")}
+                          onClick={() => navigate(`/teacher/quiz-builder?id=${q.id}`)}
                           className="p-1.5 text-gray-400 hover:text-[#272757] hover:bg-[#EDE9FE] rounded-lg transition-colors"
                         >
                           <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          title="Duplicate (pending)"
-                          onClick={() => pendingAction("Duplicate quiz")}
-                          className="p-1.5 text-gray-400 hover:text-[#10B981] hover:bg-[#10B981]/10 rounded-lg transition-colors"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          title="Delete (pending)"
-                          onClick={() => pendingAction("Delete quiz")}
-                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
@@ -466,38 +428,6 @@ export function MyQuizzes() {
           </div>
         )}
       </Card>
-
-      {deleteBulkOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-2xl p-7 shadow-2xl w-full max-w-sm text-center">
-            <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-6 h-6 text-red-500" />
-            </div>
-            <h3 className="text-base font-bold text-gray-800 mb-2">Delete {selected.length} quizzes?</h3>
-            <p className="text-sm text-gray-500 mb-6">
-              Bulk delete is not available yet (API pending).
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setDeleteBulkOpen(false)}
-                className="flex-1 border border-gray-200 rounded-xl text-sm"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  setDeleteBulkOpen(false);
-                  pendingAction("Bulk delete");
-                }}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm"
-              >
-                Understood
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
     </AppShell>
   );
 }

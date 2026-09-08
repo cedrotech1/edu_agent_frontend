@@ -54,6 +54,31 @@ function asLabel(value: unknown): string {
   return "—";
 }
 
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function scoreTone(score: number) {
+  if (score >= 90) return { text: "text-emerald-600", badge: "bg-emerald-50 text-emerald-600" };
+  if (score >= 80) return { text: "text-[#272757]", badge: "bg-[#EDE9FE] text-[#272757]" };
+  return { text: "text-amber-600", badge: "bg-amber-50 text-amber-600" };
+}
+
 export function StudentDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -100,7 +125,7 @@ export function StudentDashboard() {
 
   const handleJoin = async () => {
     if (!joinCode.trim()) {
-      setJoinError("Please enter a quiz or class code");
+      setJoinError("Enter a class code (QMIND-…) or quiz code (QZ-…)");
       return;
     }
     setJoining(true);
@@ -109,18 +134,26 @@ export function StudentDashboard() {
       const code = joinCode.trim().toUpperCase();
       if (code.startsWith("QMIND")) {
         await api.classes.join(code);
-        toast.success("Joined class!");
+        toast.success("Joined class! Class quizzes will appear in your list.");
         setJoinCode("");
         await load();
         return;
       }
       const res = await api.quizzes.byCode(code);
-      const quiz = res.data as { id: number; status?: string; closed?: boolean };
+      const quiz = res.data as {
+        id: number;
+        status?: string;
+        closed?: boolean;
+        accessCode?: string;
+      };
       if (quiz.status === "closed" || quiz.closed) {
         navigate("/student/quiz-closed");
         return;
       }
-      navigate(`/student/quiz/${quiz.id}`);
+      const { rememberQuizAccessCode } = await import("@/lib/quizAccess");
+      rememberQuizAccessCode(quiz.id, quiz.accessCode || code);
+      toast.success("Quiz unlocked with join code");
+      navigate(`/student/quiz/${quiz.id}/lobby`);
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : "Code not found. Please check and try again.";
@@ -133,134 +166,127 @@ export function StudentDashboard() {
   const displayName = user?.name || "Student";
   const firstName = displayName.split(" ")[0];
 
+  const stats = [
+    { label: "Average Score", value: `${averageScore || 0}%`, icon: TrendingUp, iconBg: "bg-[#EDE9FE]", iconColor: "text-[#272757]" },
+    { label: "Quizzes Completed", value: String(completed.length), icon: Target, iconBg: "bg-emerald-50", iconColor: "text-emerald-600" },
+    { label: "Upcoming", value: String(upcoming.length), icon: Trophy, iconBg: "bg-amber-50", iconColor: "text-amber-600" },
+  ];
+
   return (
     <AppShell role="student" pageTitle="Dashboard">
       {loading && <p className="text-gray-500 mb-4">Loading…</p>}
 
-      <Card className="bg-gradient-to-br from-[#4FC3F7] to-[#29B5E8] text-white rounded-3xl p-8 shadow-lg mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">Welcome back, {firstName}! 👋</h2>
-            <p className="text-white/90 text-lg">
-              You have {upcoming.length} upcoming quizzes
-            </p>
-          </div>
-          <div className="hidden md:block">
-            <div className="w-32 h-32 bg-white/20 rounded-full flex items-center justify-center">
-              <Trophy className="w-16 h-16 text-white" />
-            </div>
+      <Card className="bg-white rounded-xl border border-gray-100 shadow-sm mb-8 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-[#0F0E47]">Welcome back, {firstName}</h2>
+        </div>
+        <div className="p-5 flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            You have {upcoming.length} upcoming quiz{upcoming.length !== 1 ? "zes" : ""}
+          </p>
+          <div className="hidden md:flex w-12 h-12 bg-gray-50 rounded-lg items-center justify-center">
+            <Trophy className="w-6 h-6 text-[#272757]" strokeWidth={1.75} />
           </div>
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="bg-white rounded-2xl p-6 shadow-md">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm mb-1">Average Score</p>
-              <h3 className="text-3xl font-bold text-[#6C63FF]">{averageScore || 0}%</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {stats.map(({ label, value, icon: Icon, iconBg, iconColor }) => (
+          <Card key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-2">{label}</p>
+                <p className="text-3xl font-semibold text-[#0F0E47] tracking-tight">{value}</p>
+              </div>
+              <div className={`w-10 h-10 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
+                <Icon className={`w-[18px] h-[18px] ${iconColor}`} strokeWidth={1.75} />
+              </div>
             </div>
-            <TrendingUp className="w-10 h-10 text-[#6C63FF]/30" />
-          </div>
-        </Card>
-
-        <Card className="bg-white rounded-2xl p-6 shadow-md">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm mb-1">Quizzes Completed</p>
-              <h3 className="text-3xl font-bold text-[#43E6B5]">{completed.length}</h3>
-            </div>
-            <Target className="w-10 h-10 text-[#43E6B5]/30" />
-          </div>
-        </Card>
-
-        <Card className="bg-white rounded-2xl p-6 shadow-md">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm mb-1">Upcoming</p>
-              <h3 className="text-3xl font-bold text-[#FFD166]">{upcoming.length}</h3>
-            </div>
-            <Trophy className="w-10 h-10 text-[#FFD166]/30" />
-          </div>
-        </Card>
+          </Card>
+        ))}
       </div>
 
-      <Card className="bg-white rounded-2xl p-6 shadow-md mb-8">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          Join Class or Quiz by Code
-        </h3>
-        <div className="flex gap-3">
-          <Input
-            value={joinCode}
-            onChange={(e) => {
-              setJoinCode(e.target.value.toUpperCase());
-              setJoinError("");
-            }}
-            placeholder="Enter class or quiz code"
-            className={`flex-1 rounded-xl border-2 px-4 py-3 font-mono uppercase ${joinError ? "border-red-400" : "border-gray-200"}`}
-          />
-          <Button
-            onClick={handleJoin}
-            disabled={joining}
-            className="bg-[#6C63FF] hover:bg-[#5851E6] text-white px-6 rounded-xl"
-          >
-            {joining ? "Joining…" : "Join 🚀"}
-          </Button>
+      <Card className="bg-white rounded-xl border border-gray-100 shadow-sm mb-8 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-[#0F0E47]">Join with a code</h3>
+          <p className="text-xs text-gray-500 mt-1">
+            Class code (QMIND-…) enrolls you so assigned quizzes appear automatically. Quiz code (QZ-…) unlocks a shared quiz.
+          </p>
         </div>
-        {joinError && <p className="text-red-500 text-sm mt-2">{joinError}</p>}
+        <div className="p-5">
+          <div className="flex gap-3">
+            <Input
+              value={joinCode}
+              onChange={(e) => {
+                setJoinCode(e.target.value.toUpperCase());
+                setJoinError("");
+              }}
+              placeholder="QMIND-1234 or QZ-1234"
+              className={`flex-1 rounded-xl border px-4 py-3 font-mono uppercase ${joinError ? "border-red-400" : "border-gray-200"}`}
+            />
+            <Button
+              onClick={handleJoin}
+              disabled={joining}
+              className="bg-[#272757] hover:bg-[#505081] text-white px-6 rounded-xl"
+            >
+              {joining ? "Joining…" : "Join"}
+            </Button>
+          </div>
+          {joinError && <p className="text-red-500 text-sm mt-2">{joinError}</p>}
+        </div>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <h2 className="text-2xl font-semibold mb-4 text-gray-800">Upcoming Quizzes</h2>
-          <div className="space-y-4">
+          <h2 className="text-sm font-semibold text-[#0F0E47] mb-3">Upcoming Quizzes</h2>
+          <div className="space-y-3">
             {!loading && upcoming.length === 0 && (
-              <Card className="bg-white rounded-2xl p-10 shadow-md text-center">
-                <div className="w-16 h-16 bg-[#4FC3F7]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Clock className="w-8 h-8 text-[#4FC3F7]" />
+              <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center">
+                <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <Clock className="w-6 h-6 text-gray-400" strokeWidth={1.75} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">No upcoming quizzes</h3>
-                <p className="text-gray-500">Your teacher hasn't assigned any quizzes yet — check back soon!</p>
+                <h3 className="text-sm font-semibold text-[#0F0E47] mb-1">No upcoming quizzes</h3>
+                <p className="text-xs text-gray-500">Your teacher hasn't assigned any quizzes yet — check back soon!</p>
               </Card>
             )}
             {upcoming.map((quiz) => (
               <Card
                 key={quiz.id}
-                className="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-[#4FC3F7]"
+                className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:border-gray-200 hover:shadow transition-all cursor-pointer"
                 onClick={() => navigate(`/student/quiz/${quiz.id}`)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-1">{quiz.title}</h3>
-                    <p className="text-sm text-gray-600">
+                    <h3 className="text-sm font-semibold text-[#0F0E47] mb-1">{quiz.title}</h3>
+                    <p className="text-xs text-gray-500">
                       Class: {asLabel(quiz.className || quiz.class)}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs text-gray-400">
                       {asLabel(quiz.subject)} • {asLabel(quiz.teacherName || quiz.teacher)}
                     </p>
                   </div>
-                  <Badge className="bg-[#FFD166]/10 text-[#FFD166] rounded-full">
+                  <Badge className="bg-amber-50 text-amber-600 rounded-full text-xs">
                     {quiz.countdown || quiz.status || "open"}
                   </Badge>
                 </div>
 
-                <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+                <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
                   <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
+                    <Clock className="w-3.5 h-3.5" />
                     {quiz.timeLimit || "—"} min
                   </div>
                   <div className="flex items-center gap-1">
-                    <Target className="w-4 h-4" />
+                    <Target className="w-3.5 h-3.5" />
                     {quiz.questionCount ?? quiz.questions ?? "—"} questions
                   </div>
                   <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {quiz.dueDate || quiz.deadline || "—"}
+                    <Calendar className="w-3.5 h-3.5" />
+                    {formatDateTime(quiz.dueDate || quiz.deadline)}
                   </div>
                 </div>
 
-                <Button className="w-full bg-[#4FC3F7] hover:bg-[#29B5E8] text-white py-3 rounded-xl">
-                  Start Quiz 🚀
+                <Button className="w-full bg-[#272757] hover:bg-[#505081] text-white py-2.5 rounded-xl text-sm">
+                  Start Quiz
                 </Button>
               </Card>
             ))}
@@ -268,53 +294,38 @@ export function StudentDashboard() {
         </div>
 
         <div>
-          <h2 className="text-2xl font-semibold mb-4 text-gray-800">Completed Quizzes</h2>
-          <div className="space-y-4">
+          <h2 className="text-sm font-semibold text-[#0F0E47] mb-3">Completed Quizzes</h2>
+          <div className="space-y-3">
             {!loading && completed.length === 0 && (
-              <Card className="bg-white rounded-2xl p-10 shadow-md text-center">
-                <div className="w-16 h-16 bg-[#43E6B5]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Trophy className="w-8 h-8 text-[#43E6B5]" />
+              <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center">
+                <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <Trophy className="w-6 h-6 text-gray-400" strokeWidth={1.75} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">No results yet</h3>
-                <p className="text-gray-500">Complete your first quiz to see your scores here</p>
+                <h3 className="text-sm font-semibold text-[#0F0E47] mb-1">No results yet</h3>
+                <p className="text-xs text-gray-500">Complete your first quiz to see your scores here</p>
               </Card>
             )}
             {completed.map((quiz) => {
               const id = quiz.quizId || quiz.id;
+              const tone = scoreTone(quiz.score);
               return (
                 <Card
                   key={`${id}-${quiz.id}`}
-                  className="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                  className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:border-gray-200 hover:shadow transition-all cursor-pointer"
                   onClick={() => navigate(`/student/results/${id}`)}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-1">{quiz.title}</h3>
-                      <p className="text-sm text-gray-600">
-                        {quiz.subject || "—"} • {quiz.date || quiz.submittedAt || "—"}
+                      <h3 className="text-sm font-semibold text-[#0F0E47] mb-1">{quiz.title}</h3>
+                      <p className="text-xs text-gray-500">
+                        {quiz.subject || "—"} • {formatDate(quiz.date || quiz.submittedAt)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <div
-                        className={`text-3xl font-bold ${
-                          quiz.score >= 90
-                            ? "text-[#43E6B5]"
-                            : quiz.score >= 80
-                            ? "text-[#4FC3F7]"
-                            : "text-[#FFD166]"
-                        }`}
-                      >
+                      <div className={`text-2xl font-semibold ${tone.text}`}>
                         {quiz.score}%
                       </div>
-                      <Badge
-                        className={`mt-1 rounded-full ${
-                          quiz.score >= 90
-                            ? "bg-[#43E6B5]/10 text-[#43E6B5]"
-                            : quiz.score >= 80
-                            ? "bg-[#4FC3F7]/10 text-[#4FC3F7]"
-                            : "bg-[#FFD166]/10 text-[#FFD166]"
-                        }`}
-                      >
+                      <Badge className={`mt-1 rounded-full text-xs ${tone.badge}`}>
                         {quiz.score >= 90 ? "Excellent" : quiz.score >= 80 ? "Good" : "Fair"}
                       </Badge>
                     </div>

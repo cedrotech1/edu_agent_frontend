@@ -9,7 +9,6 @@ import {
   ClipboardList,
   Share2,
   Link2,
-  Download,
   X,
   Loader2,
 } from "lucide-react";
@@ -77,7 +76,7 @@ export function StudentMyResults() {
           subject: r.subject || "",
           class: r.className || r.class || "—",
           teacher: r.teacherName || r.teacher || "—",
-          dateTaken: r.date || formatDate(r.submittedAt),
+          dateTaken: formatDate(r.date || r.submittedAt),
           score: Number(r.score ?? 0),
           timeTaken: r.timeTaken || "—",
           submittedAt: r.submittedAt,
@@ -117,13 +116,13 @@ export function StudentMyResults() {
   const summaryCards = [
     { label: "Average Score", value: results.length ? `${avgScore}%` : "—", icon: BarChart3, color: "#272757", bg: "bg-[#EDE9FE]" },
     { label: "Total Quizzes", value: String(results.length), icon: ClipboardList, color: "#272757", bg: "bg-[#EDE9FE]" },
-    { label: "Best Score", value: results.length ? `${bestScore}%` : "—", icon: Trophy, color: "#F59E0B", bg: "bg-[#F59E0B]/10" },
+    { label: "Best Score", value: results.length ? `${bestScore}%` : "—", icon: Trophy, color: "#D97706", bg: "bg-amber-50" },
     {
       label: "Most Recent",
       value: results[0]?.title ? `${results[0].title.split(" ")[0]}…` : "—",
       icon: Zap,
-      color: "#10B981",
-      bg: "bg-[#10B981]/10",
+      color: "#059669",
+      bg: "bg-emerald-50",
     },
   ];
 
@@ -132,11 +131,15 @@ export function StudentMyResults() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {summaryCards.map(({ label, value, icon: Icon, color, bg }) => (
           <Card key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-            <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center mb-3`}>
-              <Icon className="w-4.5 h-4.5" style={{ color, strokeWidth: 1.75 }} />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
+                <p className="text-3xl font-semibold text-[#0F0E47]">{value}</p>
+              </div>
+              <div className={`w-10 h-10 ${bg} rounded-xl flex items-center justify-center`}>
+                <Icon className="w-5 h-5" style={{ color, strokeWidth: 1.75 }} />
+              </div>
             </div>
-            <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-            <p className="text-2xl font-bold" style={{ color }}>{value}</p>
           </Card>
         ))}
       </div>
@@ -167,7 +170,7 @@ export function StudentMyResults() {
           <div className="py-20 text-center">
             <Star className="w-12 h-12 text-gray-200 mx-auto mb-3" style={{ strokeWidth: 1.75 }} />
             <p className="font-semibold text-gray-400 mb-1">No results yet</p>
-            <p className="text-sm text-gray-300">Take your first quiz! 📝</p>
+            <p className="text-sm text-gray-300">Take your first quiz to see scores here</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -203,7 +206,7 @@ export function StudentMyResults() {
                         <Button
                           onClick={() => navigate(`/student/results/${r.id}`)}
                           variant="outline"
-                          className="border border-[#272757]/30 text-[#272757] hover:bg-[#EDE9FE] rounded-xl h-7 px-3 text-xs gap-1"
+                          className="border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-7 px-3 text-xs gap-1"
                         >
                           <Eye className="w-3 h-3" style={{ strokeWidth: 1.75 }} /> View
                         </Button>
@@ -235,7 +238,7 @@ export function StudentMyResults() {
               </button>
             </div>
             <div className="px-6 pb-6">
-              <div className="border-2 border-[#0F0E47] rounded-2xl p-6 bg-white text-center mb-5">
+              <div className="border border-gray-100 rounded-xl p-6 bg-white text-center mb-5 shadow-sm">
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <div className="w-7 h-7 bg-[#272757] rounded-lg flex items-center justify-center">
                     <span className="text-white text-sm font-black">Q</span>
@@ -263,12 +266,6 @@ export function StudentMyResults() {
                 >
                   <Link2 className={`w-4 h-4 ${copied ? "text-[#10B981]" : "text-[#272757]"}`} />
                   {copied ? "Copied!" : "Copy Link"}
-                </button>
-                <button
-                  onClick={() => toast.info("Image export — pending")}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#272757] text-white rounded-xl h-10 text-sm font-semibold hover:bg-[#1A1952] transition-colors"
-                >
-                  <Download className="w-4 h-4" /> Download as Image
                 </button>
               </div>
             </div>

@@ -6,8 +6,6 @@ import {
   Plus,
   Search,
   Eye,
-  Pencil,
-  Trash2,
   Users,
   Copy,
   Filter,
@@ -38,9 +36,10 @@ const educationLevels = [
 interface Cls {
   id: number; name: string; subject: string; level: string; sublevel: string;
   students: number; quizzes: number; code: string; status: "active" | "archived";
+  schoolId?: number | null; schoolName?: string | null;
 }
 
-const blankForm = { name: "", subject: "", level: "", sublevel: "" };
+const blankForm = { name: "", subject: "", level: "", sublevel: "", schoolId: "" };
 
 function mapClass(row: any): Cls {
   return {
@@ -53,6 +52,8 @@ function mapClass(row: any): Cls {
     quizzes: Number(row.quizzes ?? row.quizCount ?? 0),
     code: row.code || "—",
     status: row.status === "archived" ? "archived" : "active",
+    schoolId: row.schoolId || row.school?.id || null,
+    schoolName: row.schoolName || row.school?.name || null,
   };
 }
 
@@ -66,17 +67,21 @@ export function MyClasses() {
   const [filterLevel, setFilterLevel] = useState("all");
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Cls | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Cls | null>(null);
   const [form, setForm] = useState(blankForm);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [mySchools, setMySchools] = useState<Array<{ id: number; name: string }>>([]);
+  const [schoolFilter, setSchoolFilter] = useState("all");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.classes.list();
+      const [res, schoolsRes] = await Promise.all([
+        api.classes.list(),
+        api.schools.mine(),
+      ]);
       const rows = (res.data as any[]) || [];
       setClasses(Array.isArray(rows) ? rows.map(mapClass) : []);
+      setMySchools(((schoolsRes.data as any[]) || []).map((s: any) => ({ id: s.id, name: s.name })));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to load classes");
       setClasses([]);
@@ -96,19 +101,18 @@ export function MyClasses() {
       c.subject.toLowerCase().includes(search.toLowerCase());
     const matchSubject = filterSubject === "all" || c.subject === filterSubject;
     const matchLevel = filterLevel === "all" || c.level === filterLevel;
-    return matchSearch && matchSubject && matchLevel;
+    const matchSchool =
+      schoolFilter === "all" || String(c.schoolId || "") === schoolFilter;
+    return matchSearch && matchSubject && matchLevel && matchSchool;
   });
 
   const openCreate = () => {
-    setForm(blankForm);
+    setForm({
+      ...blankForm,
+      schoolId: mySchools[0] ? String(mySchools[0].id) : "",
+    });
     setFormErrors({});
     setCreateOpen(true);
-  };
-
-  const openEdit = (cls: Cls) => {
-    setEditTarget(cls);
-    setForm({ name: cls.name, subject: cls.subject, level: cls.level, sublevel: cls.sublevel });
-    setFormErrors({});
   };
 
   const validateForm = () => {
@@ -117,6 +121,7 @@ export function MyClasses() {
     if (!form.subject.trim()) e.subject = "Subject is required";
     if (!form.level) e.level = "Education level is required";
     if (!form.sublevel) e.sublevel = "Grade is required";
+    if (!form.schoolId) e.schoolId = "Select a school";
     setFormErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -130,6 +135,7 @@ export function MyClasses() {
         subject: form.subject.trim(),
         educationLevel: form.level,
         subLevel: form.sublevel,
+        schoolId: Number(form.schoolId),
       });
       toast.success("Class created!", { description: `${form.name} is ready for students.` });
       setCreateOpen(false);
@@ -140,22 +146,6 @@ export function MyClasses() {
     } finally {
       setCreating(false);
     }
-  };
-
-  const handleEdit = () => {
-    if (!validateForm() || !editTarget) return;
-    toast.message("Edit class pending", {
-      description: "Class update API is not available yet.",
-    });
-    setEditTarget(null);
-  };
-
-  const handleDelete = () => {
-    if (!deleteTarget) return;
-    toast.message("Delete class pending", {
-      description: "Class delete API is not available yet.",
-    });
-    setDeleteTarget(null);
   };
 
   const copyCode = (code: string) => {
@@ -191,6 +181,17 @@ export function MyClasses() {
         </div>
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-gray-400" />
+          <Select value={schoolFilter} onValueChange={setSchoolFilter}>
+            <SelectTrigger className="rounded-xl border border-gray-200 h-9 text-sm w-40">
+              <SelectValue placeholder="School" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Schools</SelectItem>
+              {mySchools.map((s) => (
+                <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={filterSubject} onValueChange={setFilterSubject}>
             <SelectTrigger className="rounded-xl border border-gray-200 h-9 text-sm w-36">
               <SelectValue placeholder="Subject" />
@@ -229,18 +230,18 @@ export function MyClasses() {
 
       {!loading && filtered.length === 0 && (
         <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-16 text-center">
-          <div className="w-14 h-14 bg-[#EDE9FE] rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <GraduationCap className="w-7 h-7 text-[#272757]" />
+          <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <GraduationCap className="w-6 h-6 text-gray-400" strokeWidth={1.75} />
           </div>
-          <h3 className="text-base font-semibold text-gray-800 mb-1">
+          <h3 className="text-sm font-semibold text-[#0F0E47] mb-1">
             {search || filterSubject !== "all" || filterLevel !== "all"
               ? "No classes match your filters"
-              : "No classes yet — create your first one!"}
+              : "No classes yet"}
           </h3>
-          <p className="text-sm text-gray-400 mb-5">
+          <p className="text-xs text-gray-500 mb-5">
             {search || filterSubject !== "all" || filterLevel !== "all"
               ? "Try adjusting your search or filters"
-              : "Classes help you organise students and assign quizzes."}
+              : "Create your first class and invite students with a join code."}
           </p>
           {!search && filterSubject === "all" && filterLevel === "all" && (
             <Button onClick={openCreate} className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl text-sm gap-2">
@@ -261,23 +262,12 @@ export function MyClasses() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0 pr-2">
                     <h3 className="font-semibold text-gray-800 text-sm leading-tight truncate">{cls.name}</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">{cls.subject}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {cls.subject}
+                      {cls.schoolName ? ` · ${cls.schoolName}` : ""}
+                    </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => openEdit(cls)}
-                      title="Edit (pending)"
-                      className="p-1.5 text-gray-400 hover:text-[#272757] hover:bg-[#EDE9FE] rounded-lg transition-colors"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(cls)}
-                      title="Delete (pending)"
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
                     <button
                       onClick={() => navigate(`/teacher/class/${cls.id}`)}
                       title="View"
@@ -343,47 +333,18 @@ export function MyClasses() {
           formErrors={formErrors}
           educationLevels={educationLevels}
           activeSubLevels={activeSubLevels}
+          schools={mySchools}
           saving={creating}
           onSave={handleCreate}
           onClose={() => setCreateOpen(false)}
         />
-      )}
-
-      {editTarget && (
-        <ClassFormModal
-          title="Edit Class"
-          form={form}
-          setForm={setForm}
-          formErrors={formErrors}
-          educationLevels={educationLevels}
-          activeSubLevels={activeSubLevels}
-          onSave={handleEdit}
-          onClose={() => setEditTarget(null)}
-        />
-      )}
-
-      {deleteTarget && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white rounded-2xl p-7 shadow-2xl w-full max-w-sm text-center">
-            <h3 className="text-base font-bold text-gray-800 mb-2">Delete "{deleteTarget.name}"?</h3>
-            <p className="text-sm text-gray-500 mb-6">Class delete API is not available yet.</p>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setDeleteTarget(null)} className="flex-1 rounded-xl text-sm">
-                Cancel
-              </Button>
-              <Button onClick={handleDelete} className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm">
-                Understood
-              </Button>
-            </div>
-          </Card>
-        </div>
       )}
     </AppShell>
   );
 }
 
 function ClassFormModal({
-  title, form, setForm, formErrors, educationLevels, activeSubLevels, onSave, onClose, saving,
+  title, form, setForm, formErrors, educationLevels, activeSubLevels, schools, onSave, onClose, saving,
 }: {
   title: string;
   form: typeof blankForm;
@@ -391,6 +352,7 @@ function ClassFormModal({
   formErrors: Record<string, string>;
   educationLevels: { value: string; label: string; sublevels: string[] }[];
   activeSubLevels: string[];
+  schools: Array<{ id: number; name: string }>;
   onSave: () => void;
   onClose: () => void;
   saving?: boolean;
@@ -400,6 +362,26 @@ function ClassFormModal({
       <Card className="bg-white rounded-2xl p-7 shadow-2xl w-full max-w-md">
         <h3 className="text-lg font-bold text-gray-800 mb-5">{title}</h3>
         <div className="space-y-4">
+          <div>
+            <Label className="text-sm text-gray-700 mb-1.5 block">School</Label>
+            <Select
+              value={form.schoolId}
+              onValueChange={(v) => setForm({ ...form, schoolId: v })}
+            >
+              <SelectTrigger className={`rounded-xl ${formErrors.schoolId ? "border-red-400" : "border-gray-200"}`}>
+                <SelectValue placeholder="Select school" />
+              </SelectTrigger>
+              <SelectContent>
+                {schools.map((s) => (
+                  <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {formErrors.schoolId && <p className="text-xs text-red-500 mt-1">{formErrors.schoolId}</p>}
+            {schools.length === 0 && (
+              <p className="text-xs text-amber-600 mt-1">Join a school from Settings, or ask an admin to add schools.</p>
+            )}
+          </div>
           <div>
             <Label className="text-sm text-gray-700 mb-1.5 block">Class Name</Label>
             <Input

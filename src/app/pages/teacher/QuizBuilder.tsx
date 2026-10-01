@@ -43,8 +43,40 @@ const educationLevels: Record<string, { name: string; subLevels: string[] }> = {
   university: { name: "University", subLevels: ["Year 1", "Year 2", "Year 3", "Year 4"] },
 };
 
+const SUBJECTS = [
+  { value: "math", label: "Mathematics" },
+  { value: "science", label: "Science" },
+  { value: "english", label: "English" },
+  { value: "history", label: "History" },
+  { value: "computer", label: "Computer Science" },
+  { value: "other", label: "Other" },
+];
+
 type QuestionType = "mcq" | "short" | "truefalse";
 type Step = "ai" | "edit";
+type GenerateMode = "replace" | "append";
+
+function normalizeQuestion(q: any, i: number): Question {
+  const type = (q.type || "mcq") as QuestionType;
+  let correct = q.correct;
+  if (type === "mcq" && typeof correct === "string" && correct !== "" && !Number.isNaN(Number(correct))) {
+    correct = Number(correct);
+  }
+  if (type === "truefalse") {
+    if (correct === "true" || correct === 1 || correct === "1") correct = true;
+    if (correct === "false" || correct === 0 || correct === "0") correct = false;
+  }
+  const options = Array.isArray(q.options) ? q.options : undefined;
+  return {
+    id: Number(q.id) || i + 1,
+    type,
+    question: q.question || "",
+    options,
+    correct,
+    modelAnswer: q.modelAnswer || "",
+    points: Number(q.points || 1),
+  };
+}
 
 interface Question {
   id: number;
@@ -382,13 +414,13 @@ export function QuizBuilder() {
   const [genStream, setGenStream] = useState("");
   const genLogRef = useRef<HTMLDivElement>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showGenerate, setShowGenerate] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [quizCode, setQuizCode] = useState("");
   const [codeCopied, setCodeCopied] = useState(false);
   const [showSuccess, setShowSuccess] = useState<"draft" | "active" | null>(null);
   const [selectedClass, setSelectedClass] = useState("");
   const [classes, setClasses] = useState<{ id: number; name: string }[]>([]);
-  const [nextId, setNextId] = useState(1);
   const [saving, setSaving] = useState(false);
   const [quizId, setQuizId] = useState<number | null>(editId ? Number(editId) : null);
   const [loadingQuiz, setLoadingQuiz] = useState(Boolean(editId));
@@ -427,6 +459,7 @@ export function QuizBuilder() {
         const d: any = res.data || {};
         setQuizId(d.id);
         setQuizTitle(d.title || "");
+        setTopic(d.title || "");
         setSubject(d.subject || "");
         setSelectedClass(d.classId ? String(d.classId) : "");
         setTimeLimit(String(d.timeLimit || 30));
@@ -439,17 +472,8 @@ export function QuizBuilder() {
             setDeadlineTime(dt.toTimeString().slice(0, 5));
           }
         }
-        const qs = (d.questions || []).map((q: any, i: number) => ({
-          id: q.id || i + 1,
-          type: (q.type || "mcq") as QuestionType,
-          question: q.question || "",
-          options: q.options || undefined,
-          correct: q.correct,
-          modelAnswer: q.modelAnswer || "",
-          points: Number(q.points || 1),
-        }));
+        const qs = (d.questions || []).map((q: any, i: number) => normalizeQuestion(q, i));
         setQuestions(qs);
-        setNextId(qs.reduce((m: number, q: Question) => Math.max(m, q.id), 0) + 1);
         setStep("edit");
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : "Failed to load quiz");
@@ -465,10 +489,14 @@ export function QuizBuilder() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [genLog, genStream]);
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (mode: GenerateMode = "replace") => {
     if (!topic.trim() || !subject) {
       toast.error("Please enter a topic and subject");
       return;
+    }
+    if (mode === "replace" && questions.length > 0) {
+      const ok = window.confirm("Replace the current questions with a new generated set?");
+      if (!ok) return;
     }
     setIsGenerating(true);
     setGenLog([]);
@@ -491,25 +519,34 @@ export function QuizBuilder() {
       );
       const data = res.data;
       const qs = data.questions || [];
-      const mapped = qs.map((q: any, i: number) => ({
-        ...q,
-        id: q.id ?? i + 1,
-        points: q.points ?? 1,
-        type: (q.type || "mcq") as QuestionType,
-      }));
-      setQuestions(mapped);
-      setNextId(mapped.length + 1);
-      setQuizTitle(data.title || `${topic} - ${subject} Quiz`);
-      setQuizId(null);
+      const mapped = qs.map((q: any, i: number) =>
+        normalizeQuestion({ ...q, id: undefined, points: q.points ?? 1 }, i)
+      );
+      if (mode === "append") {
+        setQuestions((prev) => {
+          let id = prev.reduce((m, item) => Math.max(m, Number(item.id) || 0), 0);
+          return [...prev, ...mapped.map((q) => ({ ...q, id: ++id }))];
+        });
+        if (!quizTitle.trim()) setQuizTitle(data.title || `${topic} - ${subject} Quiz`);
+      } else {
+        const fresh = mapped.map((q, i) => ({ ...q, id: i + 1 }));
+        setQuestions(fresh);
+        setQuizTitle(data.title || quizTitle || `${topic} - ${subject} Quiz`);
+      }
       setStep("edit");
+      setShowGenerate(false);
       if (data.source === "stub" || res.warning) {
-        toast.message("Generated with templates", {
+        toast.message(mode === "append" ? "Questions added from templates" : "Generated with templates", {
           description:
             res.warning ||
             "Add CURSOR_API_KEY on the server for real AI questions.",
         });
       } else {
-        toast.success("AI quiz ready — review and edit before saving");
+        toast.success(
+          mode === "append"
+            ? "Questions added — review them, then save"
+            : "AI quiz ready — review and edit before saving"
+        );
       }
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to generate quiz");
@@ -591,8 +628,10 @@ export function QuizBuilder() {
       setEditingQuestion(null);
       toast.success("Question updated");
     } else {
-      setQuestions((prev) => [...prev, { ...q, id: nextId }]);
-      setNextId((n) => n + 1);
+      setQuestions((prev) => {
+        const id = prev.reduce((m, item) => Math.max(m, Number(item.id) || 0), 0) + 1;
+        return [...prev, { ...q, id }];
+      });
       setShowAddModal(false);
       toast.success("Question added");
     }
@@ -650,12 +689,12 @@ export function QuizBuilder() {
                     <SelectValue placeholder="Select subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="math">Mathematics</SelectItem>
-                    <SelectItem value="science">Science</SelectItem>
-                    <SelectItem value="english">English</SelectItem>
-                    <SelectItem value="history">History</SelectItem>
-                    <SelectItem value="computer">Computer Science</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {SUBJECTS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                    {subject && !SUBJECTS.some((s) => s.value === subject) && (
+                      <SelectItem value={subject}>{subject}</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -727,7 +766,7 @@ export function QuizBuilder() {
             </div>
 
             <Button
-              onClick={handleGenerate}
+              onClick={() => handleGenerate("replace")}
               disabled={isGenerating}
               className="w-full bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-11 text-sm gap-2"
             >
@@ -897,17 +936,145 @@ export function QuizBuilder() {
         <div className="lg:col-span-2 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-[#0F0E47]">Questions</h3>
-            <Button
-              onClick={() => {
-                setEditingQuestion(null);
-                setShowAddModal(true);
-              }}
-              variant="outline"
-              className="border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-9 px-3 text-sm gap-1.5"
-            >
-              <Plus className="w-4 h-4" /> Add question
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                onClick={() => setShowGenerate((open) => !open)}
+                variant="outline"
+                className="border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-9 px-3 text-sm gap-1.5"
+              >
+                <Sparkles className="w-4 h-4" /> Generate questions
+              </Button>
+              <Button
+                onClick={() => {
+                  setEditingQuestion(null);
+                  setShowAddModal(true);
+                }}
+                variant="outline"
+                className="border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-9 px-3 text-sm gap-1.5"
+              >
+                <Plus className="w-4 h-4" /> Add question
+              </Button>
+            </div>
           </div>
+
+          {showGenerate && (
+            <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3">
+              <div>
+                <h4 className="text-sm font-semibold text-[#0F0E47]">Generate more questions</h4>
+                <p className="text-xs text-gray-500">
+                  Add one batch to this quiz, or replace the list. Subject and the questions you already edited stay until you choose replace.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <Label className="mb-1.5 block text-xs font-medium text-gray-600">Topic</Label>
+                  <Input
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    className="rounded-xl border border-gray-200 h-10 text-sm"
+                    placeholder="e.g. Java OOP, Photosynthesis"
+                  />
+                </div>
+                <div>
+                  <Label className="mb-1.5 block text-xs font-medium text-gray-600">How many</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={numQuestions}
+                    onChange={(e) => setNumQuestions(e.target.value)}
+                    className="rounded-xl border border-gray-200 h-10 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="mb-1.5 block text-xs font-medium text-gray-600">Question type</Label>
+                  <Select value={questionType} onValueChange={setQuestionType}>
+                    <SelectTrigger className="rounded-xl border border-gray-200 h-10 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mcq">Multiple Choice</SelectItem>
+                      <SelectItem value="short">Short Answer</SelectItem>
+                      <SelectItem value="truefalse">True / False</SelectItem>
+                      <SelectItem value="mixed">Mixed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="mb-1.5 block text-xs font-medium text-gray-600">Grade level</Label>
+                  <Select value={educationLevel} onValueChange={(v) => { setEducationLevel(v); setSubLevel(""); }}>
+                    <SelectTrigger className="rounded-xl border border-gray-200 h-10 text-sm">
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(educationLevels).map((key) => (
+                        <SelectItem key={key} value={key}>{educationLevels[key].name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="mb-1.5 block text-xs font-medium text-gray-600">Sub level</Label>
+                  <Select value={subLevel} onValueChange={setSubLevel}>
+                    <SelectTrigger className="rounded-xl border border-gray-200 h-10 text-sm">
+                      <SelectValue placeholder="Select sub level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(educationLevels[educationLevel]?.subLevels || []).map((sl) => (
+                        <SelectItem key={sl} value={sl}>{sl}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="mb-1.5 block text-xs font-medium text-gray-600">Extra instructions</Label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="rounded-xl border border-gray-200 min-h-[72px] text-sm resize-none"
+                    placeholder="Optional focus, e.g. inheritance and exceptions"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => handleGenerate("append")}
+                  disabled={isGenerating}
+                  className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-9 px-4 text-sm gap-1.5"
+                >
+                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  Add generated questions
+                </Button>
+                <Button
+                  onClick={() => handleGenerate("replace")}
+                  disabled={isGenerating}
+                  variant="outline"
+                  className="border border-gray-200 rounded-xl h-9 px-4 text-sm"
+                >
+                  Replace all questions
+                </Button>
+              </div>
+              {isGenerating && (
+                <div className="rounded-xl bg-[#0F0E47] text-[#E4E4F4] p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8686AC] mb-3">Reasoning</p>
+                  <ul className="space-y-1.5 mb-3">
+                    {genLog.map((line, i) => (
+                      <li key={`${i}-${line}`} className="flex gap-2 text-xs leading-relaxed">
+                        <span className="text-[#10B981] shrink-0">›</span>
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div
+                    ref={genLogRef}
+                    className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words text-[13px] leading-relaxed text-[#C4C4D8] border-t border-white/10 pt-3"
+                  >
+                    {genStream}
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
 
           {questions.length === 0 ? (
             <Card className="bg-white rounded-xl border border-dashed border-gray-200 shadow-sm p-10 text-center">
@@ -919,7 +1086,7 @@ export function QuizBuilder() {
                 Generate with AI first, then add or edit questions here.
               </p>
               <Button
-                onClick={() => setStep("ai")}
+                onClick={() => (editId ? setShowGenerate(true) : setStep("ai"))}
                 className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-9 px-4 text-sm gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5" />
@@ -1040,6 +1207,22 @@ export function QuizBuilder() {
                   className="rounded-xl border border-gray-200 h-10 text-sm"
                   placeholder="e.g. Biology Chapter 3 Quiz"
                 />
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium text-gray-600">Subject</Label>
+                <Select value={subject} onValueChange={setSubject}>
+                  <SelectTrigger className="rounded-xl border border-gray-200 h-10 text-sm">
+                    <SelectValue placeholder="Select subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUBJECTS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                    {subject && !SUBJECTS.some((s) => s.value === subject) && (
+                      <SelectItem value={subject}>{subject}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label className="mb-1.5 block text-xs font-medium text-gray-600">

@@ -22,7 +22,7 @@ export function AuthFooter() {
             Privacy Policy
           </button>
           <span className="mx-1 text-[#C4C4D8]">·</span>
-          <button onClick={() => navigate("/admin/help")} className="hover:text-[#272757] transition-colors px-1">
+          <button onClick={() => navigate("/how-it-works")} className="hover:text-[#272757] transition-colors px-1">
             Help
           </button>
         </div>

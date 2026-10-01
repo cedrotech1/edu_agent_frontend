@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { CheckCircle } from "lucide-react";
 import { PublicNav } from "../../components/PublicNav";
+import { AuthFooter } from "../../components/AuthFooter";
 
 export function PasswordResetSuccess() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export function PasswordResetSuccess() {
         </button>
       </div>
       </div>
+      <AuthFooter />
     </div>
   );
 }

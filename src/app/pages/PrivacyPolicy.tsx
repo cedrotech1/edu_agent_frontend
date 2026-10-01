@@ -1,5 +1,6 @@
 import { ArrowUp } from "lucide-react";
 import { PublicNav } from "../components/PublicNav";
+import { AuthFooter } from "../components/AuthFooter";
 
 export function PrivacyPolicy() {
   return (
@@ -85,6 +86,7 @@ export function PrivacyPolicy() {
           </div>
         </div>
       </div>
+      <AuthFooter />
     </div>
   );
 }

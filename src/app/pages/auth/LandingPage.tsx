@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { PublicNav } from "../../components/PublicNav";
+import { AuthFooter } from "../../components/AuthFooter";
 import {
   Sparkles,
   Send,
@@ -327,6 +328,7 @@ export function LandingPage() {
           </div>
         </section>
       )}
+      <AuthFooter />
     </div>
   );
 }

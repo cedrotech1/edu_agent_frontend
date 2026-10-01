@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { PublicNav } from "../../components/PublicNav";
+import { AuthFooter } from "../../components/AuthFooter";
 
 const QUESTIONS = [
   { q: "What is 2 + 2?",             options: ["3", "4", "5", "6"],     answer: 1 },
@@ -17,9 +18,9 @@ export function PublicQuizTaking() {
 
   if (!started) {
     return (
-      <div className="public-page min-h-screen">
+      <div className="public-page min-h-screen flex flex-col">
         <PublicNav />
-        <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto px-4 py-12 flex-1">
           <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 shadow-sm text-center">
             <h1 className="text-2xl font-bold text-[#0F0E47] mb-2">Algebra Chapter 3 — End of Term</h1>
             <p className="text-sm text-[#8686AC] mb-5">By Ms. Johnson</p>
@@ -33,6 +34,7 @@ export function PublicQuizTaking() {
             </button>
           </div>
         </div>
+        <AuthFooter />
       </div>
     );
   }
@@ -41,7 +43,7 @@ export function PublicQuizTaking() {
   const progress = ((current + 1) / QUESTIONS.length) * 100;
 
   return (
-    <div className="public-page min-h-screen">
+    <div className="public-page min-h-screen flex flex-col">
       <PublicNav />
       <div className="max-w-2xl mx-auto px-4 pt-6">
         <p className="text-sm text-[#64748B] text-right">Question {current + 1} of {QUESTIONS.length}</p>
@@ -81,6 +83,7 @@ export function PublicQuizTaking() {
           </div>
         </div>
       </div>
+      <AuthFooter />
     </div>
   );
 }

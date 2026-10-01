@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { Clock } from "lucide-react";
 import { PublicNav } from "../components/PublicNav";
+import { AuthFooter } from "../components/AuthFooter";
 
 export function SessionExpired() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export function SessionExpired() {
         </button>
       </div>
       </div>
+      <AuthFooter />
     </div>
   );
 }

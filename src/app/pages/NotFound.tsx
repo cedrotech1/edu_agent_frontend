@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { LayoutDashboard } from "lucide-react";
 import { PublicNav } from "../components/PublicNav";
+import { AuthFooter } from "../components/AuthFooter";
 
 export function NotFound() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export function NotFound() {
         </button>
       </div>
       </div>
+      <AuthFooter />
     </div>
   );
 }

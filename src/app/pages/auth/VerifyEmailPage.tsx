@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Logo } from "../../components/Logo";
 import { PublicNav } from "../../components/PublicNav";
+import { AuthFooter } from "../../components/AuthFooter";
 import { api } from "@/lib/api";
 import { roleHome } from "@/lib/auth";
 import { toast } from "sonner";
@@ -217,6 +218,7 @@ export function VerifyEmailPage() {
         </div>
       </div>
       </div>
+      <AuthFooter />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { Button } from "../../components/ui/button";
 import { PublicNav } from "../../components/PublicNav";
+import { AuthFooter } from "../../components/AuthFooter";
 import { Sparkles, Users, BookOpen, CheckCircle, ArrowDown, Brain } from "lucide-react";
 
 const steps = [
@@ -119,6 +120,7 @@ export function HowItWorks() {
           </div>
         </div>
       </div>
+      <AuthFooter />
     </div>
   );
 }

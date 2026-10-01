@@ -4,7 +4,7 @@ export function AuthFooter() {
   const navigate = useNavigate();
 
   return (
-    <footer className="px-6 sm:px-10 py-6 bg-transparent">
+    <footer className="mt-auto px-6 sm:px-10 py-6 bg-transparent">
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 bg-[#272757]/10 rounded-lg flex items-center justify-center">

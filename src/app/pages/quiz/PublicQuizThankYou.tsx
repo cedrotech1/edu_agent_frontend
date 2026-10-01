@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { CheckCircle2 } from "lucide-react";
 import { PublicNav } from "../../components/PublicNav";
+import { AuthFooter } from "../../components/AuthFooter";
 
 export function PublicQuizThankYou() {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ export function PublicQuizThankYou() {
         </div>
       </div>
       </div>
+      <AuthFooter />
     </div>
   );
 }

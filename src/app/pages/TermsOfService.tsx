@@ -1,5 +1,6 @@
 import { ArrowUp } from "lucide-react";
 import { PublicNav } from "../components/PublicNav";
+import { AuthFooter } from "../components/AuthFooter";
 
 export function TermsOfService() {
   return (
@@ -92,6 +93,7 @@ export function TermsOfService() {
           </div>
         </div>
       </div>
+      <AuthFooter />
     </div>
   );
 }

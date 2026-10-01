@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
@@ -378,6 +378,9 @@ export function QuizBuilder() {
   const [step, setStep] = useState<Step>(editId ? "edit" : "ai");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [genLog, setGenLog] = useState<string[]>([]);
+  const [genStream, setGenStream] = useState("");
+  const genLogRef = useRef<HTMLDivElement>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [quizCode, setQuizCode] = useState("");
@@ -403,7 +406,6 @@ export function QuizBuilder() {
   const [deadline, setDeadline] = useState("");
   const [deadlineTime, setDeadlineTime] = useState("");
   const [lockAfterDeadline, setLockAfterDeadline] = useState(true);
-  const [antiAI, setAntiAI] = useState(false);
   const [instantResults, setInstantResults] = useState(true);
 
   useEffect(() => {
@@ -429,7 +431,6 @@ export function QuizBuilder() {
         setSelectedClass(d.classId ? String(d.classId) : "");
         setTimeLimit(String(d.timeLimit || 30));
         setLockAfterDeadline(d.lockAfterDeadline !== false);
-        setAntiAI(Boolean(d.antiAI));
         setInstantResults(d.instantResults !== false);
         if (d.deadline) {
           const dt = new Date(d.deadline);
@@ -459,29 +460,38 @@ export function QuizBuilder() {
     })();
   }, [editId, navigate]);
 
+  useEffect(() => {
+    const el = genLogRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [genLog, genStream]);
+
   const handleGenerate = async () => {
     if (!topic.trim() || !subject) {
       toast.error("Please enter a topic and subject");
       return;
     }
     setIsGenerating(true);
+    setGenLog([]);
+    setGenStream("");
     try {
-      const res = await api.quizzes.generate({
-        topic,
-        subject,
-        educationLevel,
-        subLevel,
-        numQuestions,
-        questionType,
-        description: description.trim() || undefined,
-      });
-      const data = res.data as {
-        questions?: Question[];
-        title?: string;
-        source?: string;
-      } | Question[];
-      const qs = Array.isArray(data) ? data : data.questions || [];
-      const mapped = qs.map((q, i) => ({
+      const res = await api.quizzes.generateStream(
+        {
+          topic,
+          subject,
+          educationLevel,
+          subLevel,
+          numQuestions,
+          questionType,
+          description: description.trim() || undefined,
+        },
+        {
+          onStatus: (message) => setGenLog((prev) => [...prev, message]),
+          onReasoning: (text) => setGenStream((prev) => (prev + text).slice(-8000)),
+        }
+      );
+      const data = res.data;
+      const qs = data.questions || [];
+      const mapped = qs.map((q: any, i: number) => ({
         ...q,
         id: q.id ?? i + 1,
         points: q.points ?? 1,
@@ -489,14 +499,13 @@ export function QuizBuilder() {
       }));
       setQuestions(mapped);
       setNextId(mapped.length + 1);
-      setQuizTitle((!Array.isArray(data) && data.title) || `${topic} - ${subject} Quiz`);
+      setQuizTitle(data.title || `${topic} - ${subject} Quiz`);
       setQuizId(null);
       setStep("edit");
-      const source = !Array.isArray(data) ? data.source : undefined;
-      if (source === "stub" || (res as any).warning) {
+      if (data.source === "stub" || res.warning) {
         toast.message("Generated with templates", {
           description:
-            (res as any).warning ||
+            res.warning ||
             "Add CURSOR_API_KEY on the server for real AI questions.",
         });
       } else {
@@ -523,7 +532,6 @@ export function QuizBuilder() {
       timeLimit: Number(timeLimit) || 30,
       deadline: deadlineIso || null,
       lockAfterDeadline,
-      antiAI,
       instantResults,
       status,
       questions: questions.map((q, order) => ({
@@ -733,6 +741,31 @@ export function QuizBuilder() {
                 </>
               )}
             </Button>
+
+            {isGenerating && (
+              <div className="rounded-xl bg-[#0F0E47] text-[#E4E4F4] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8686AC] mb-3">
+                  Reasoning
+                </p>
+                <ul className="space-y-1.5 mb-3">
+                  {genLog.map((line, i) => (
+                    <li key={`${i}-${line}`} className="flex gap-2 text-xs leading-relaxed">
+                      <span className="text-[#10B981] shrink-0">›</span>
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                  {genLog.length === 0 && (
+                    <li className="text-xs text-[#8686AC]">Starting…</li>
+                  )}
+                </ul>
+                <div
+                  ref={genLogRef}
+                  className="max-h-52 overflow-y-auto whitespace-pre-wrap break-words text-[13px] leading-relaxed text-[#C4C4D8] border-t border-white/10 pt-3"
+                >
+                  {genStream}
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       </AppShell>
@@ -1058,13 +1091,6 @@ export function QuizBuilder() {
                   <p className="text-[11px] text-gray-400">Block late submissions</p>
                 </div>
                 <Switch checked={lockAfterDeadline} onCheckedChange={setLockAfterDeadline} />
-              </div>
-              <div className="flex items-center justify-between py-2 border-t border-gray-100">
-                <div>
-                  <p className="text-sm font-medium text-[#0F0E47]">Anti-AI cheating</p>
-                  <p className="text-[11px] text-gray-400">Flag suspicious answers</p>
-                </div>
-                <Switch checked={antiAI} onCheckedChange={setAntiAI} />
               </div>
               <div className="flex items-center justify-between py-2 border-t border-gray-100">
                 <div>

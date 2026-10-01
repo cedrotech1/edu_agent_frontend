@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import { Button } from "../../components/ui/button";
-import { Logo } from "../../components/Logo";
+import { PublicNav } from "../../components/PublicNav";
 import { Sparkles, Users, BookOpen, CheckCircle, ArrowDown, Brain } from "lucide-react";
 
 const steps = [
@@ -18,7 +18,7 @@ const steps = [
     color: "#505081",
     title: "Student Takes the Quiz",
     desc: "Students join using a class code or quiz link. They complete the quiz within the time limit, answer all question types, and submit — from any device.",
-    details: ["Join with a class or quiz code", "Live countdown timer with auto-submit", "Instant anti-cheating detection", "Works on phone, tablet, or laptop"],
+    details: ["Join with a class or quiz code", "Live countdown timer with auto-submit", "Multiple choice, true/false, and short answer", "Works on phone, tablet, or laptop"],
   },
   {
     step: 3,
@@ -35,21 +35,7 @@ export function HowItWorks() {
 
   return (
     <div className="public-page">
-      <nav className="public-nav">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between gap-4">
-          <button onClick={() => navigate("/")} className="rounded-xl focus:outline-none">
-            <Logo variant="horizontal" size="md" />
-          </button>
-          <div className="flex gap-2 sm:gap-3">
-            <Button onClick={() => navigate("/signup")} className="public-btn-ghost h-11 px-5">
-              Sign Up
-            </Button>
-            <Button onClick={() => navigate("/login")} className="public-btn-primary h-11 px-5">
-              Log In
-            </Button>
-          </div>
-        </div>
-      </nav>
+      <PublicNav />
 
       <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
         <div className="text-center mb-16">

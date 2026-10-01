@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Logo } from "../../components/Logo";
 import { AuthFooter } from "../../components/AuthFooter";
+import { PublicNav } from "../../components/PublicNav";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth, roleHome } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
@@ -50,6 +51,7 @@ export function LoginPage() {
 
   return (
     <div className="public-page flex flex-col relative">
+      <PublicNav />
       <div className="flex-1 flex items-center justify-center p-5 sm:p-8">
         <div className="w-full max-w-md">
           <div className="flex flex-col items-center mb-9">

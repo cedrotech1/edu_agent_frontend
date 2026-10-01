@@ -28,7 +28,7 @@ interface DashboardLayoutProps {
 }
 
 const roleStyle = {
-  teacher: { avatarBg: "bg-[#272757]",  badgeCls: "bg-[#EDE9FE] text-[#BFDBFE]"  },
+  teacher: { avatarBg: "bg-[#272757]",  badgeCls: "bg-white text-[#2563EB]"  },
   student: { avatarBg: "bg-[#505081]",  badgeCls: "bg-[#505081]/30 text-white"  },
   admin:   { avatarBg: "bg-[#8686AC]",  badgeCls: "bg-[#8686AC]/30 text-white"  },
 };

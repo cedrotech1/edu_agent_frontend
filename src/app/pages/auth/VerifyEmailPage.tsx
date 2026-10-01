@@ -4,6 +4,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Logo } from "../../components/Logo";
+import { PublicNav } from "../../components/PublicNav";
 import { api } from "@/lib/api";
 import { roleHome } from "@/lib/auth";
 import { toast } from "sonner";
@@ -68,7 +69,9 @@ export function VerifyEmailPage() {
   };
 
   return (
-    <div className="public-page flex items-center justify-center p-5 sm:p-8">
+    <div className="public-page flex flex-col min-h-screen">
+      <PublicNav />
+      <div className="flex-1 flex items-center justify-center p-5 sm:p-8">
       <div className="public-surface w-full max-w-md p-8 sm:p-10">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-5">
@@ -209,9 +212,10 @@ export function VerifyEmailPage() {
             onClick={() => navigate("/login")}
             className="text-[#8686AC] hover:text-[#272757] font-medium transition-colors"
           >
-            ← Back to Login
+            ? Back to Login
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

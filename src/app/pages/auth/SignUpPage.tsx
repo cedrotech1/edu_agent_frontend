@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Logo } from "../../components/Logo";
 import { AuthFooter } from "../../components/AuthFooter";
+import { PublicNav } from "../../components/PublicNav";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -93,6 +94,7 @@ export function SignUpPage() {
 
   return (
     <div className="public-page flex flex-col relative">
+      <PublicNav />
       <div className="flex-1 flex items-center justify-center p-5 sm:p-8">
         <div className="public-surface w-full max-w-md p-8 sm:p-10">
           <div className="text-center mb-8">

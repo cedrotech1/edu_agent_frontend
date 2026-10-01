@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
-  Clock, BookOpen, Users, AlertCircle, CheckCircle, ArrowLeft, Lock, Bot, Loader2,
+  Clock, BookOpen, Users, AlertCircle, CheckCircle, ArrowLeft, Lock, Loader2,
 } from "lucide-react";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -24,7 +24,6 @@ interface LobbyQuiz {
   deadline: string;
   deadlineMs: number;
   status: LobbyStatus;
-  antiAI: boolean;
   studentCount: number;
 }
 
@@ -109,7 +108,6 @@ export function QuizLobby() {
           deadline: formatDeadline(deadlineIso),
           deadlineMs: deadlineIso ? new Date(deadlineIso).getTime() : Date.now() + 86400000,
           status: resolveStatus(q),
-          antiAI: Boolean(q.antiAI),
           studentCount,
         });
       } catch (err) {
@@ -216,15 +214,6 @@ export function QuizLobby() {
               {deadlineIcon}
               <span>{deadlineText}</span>
             </div>
-
-            {quiz.antiAI && (
-              <div className="flex items-start gap-2.5 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl px-4 py-3 mb-6">
-                <Bot className="w-4 h-4 text-yellow-600 shrink-0 mt-0.5" style={{ strokeWidth: 1.75 }} />
-                <p className="text-sm text-yellow-700">
-                  Answer in your own words — AI will review your responses
-                </p>
-              </div>
-            )}
 
             {quiz.status === "open" && (
               <>

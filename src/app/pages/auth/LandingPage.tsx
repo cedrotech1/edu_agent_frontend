@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Logo } from "../../components/Logo";
+import { PublicNav } from "../../components/PublicNav";
 import {
   Sparkles,
   Send,
@@ -106,28 +106,7 @@ export function LandingPage() {
 
   return (
     <div className="public-page overflow-x-hidden">
-      <nav className="public-nav">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <Logo variant="horizontal" size="md" />
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/how-it-works")}
-                className="hidden sm:inline-flex text-[#505081] hover:text-[#272757] hover:bg-[#272757]/6 rounded-xl px-4 h-11"
-              >
-                How it works
-              </Button>
-              <Button onClick={() => navigate("/signup")} className="public-btn-ghost h-11 px-5">
-                Sign Up
-              </Button>
-              <Button onClick={() => navigate("/login")} className="public-btn-primary h-11 px-5">
-                Log In
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <PublicNav />
 
       {/* Hero: copy + chat left, illustration right */}
       <section className="relative max-w-7xl mx-auto px-5 sm:px-8 pt-8 sm:pt-12 pb-12 sm:pb-16">

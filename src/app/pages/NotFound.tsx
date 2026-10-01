@@ -1,10 +1,13 @@
 import { useNavigate } from "react-router";
 import { LayoutDashboard } from "lucide-react";
+import { PublicNav } from "../components/PublicNav";
 
 export function NotFound() {
   const navigate = useNavigate();
   return (
-    <div className="public-page flex items-center justify-center px-6 py-10">
+    <div className="public-page flex flex-col min-h-screen">
+      <PublicNav />
+      <div className="flex-1 flex items-center justify-center px-6 py-10">
       <div className="text-center max-w-md">
         <p className="text-[120px] font-black text-[#272757]/15 leading-none mb-2 select-none">404</p>
         <h1 className="text-2xl font-bold text-[#0F0E47] mb-3">Page not found</h1>
@@ -18,6 +21,7 @@ export function NotFound() {
           <LayoutDashboard className="w-4 h-4" style={{ strokeWidth: 1.75 }} />
           Go Home
         </button>
+      </div>
       </div>
     </div>
   );

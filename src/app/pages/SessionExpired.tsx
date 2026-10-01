@@ -1,10 +1,13 @@
 import { useNavigate } from "react-router";
 import { Clock } from "lucide-react";
+import { PublicNav } from "../components/PublicNav";
 
 export function SessionExpired() {
   const navigate = useNavigate();
   return (
-    <div className="public-page flex items-center justify-center px-6 py-10">
+    <div className="public-page flex flex-col min-h-screen">
+      <PublicNav />
+      <div className="flex-1 flex items-center justify-center px-6 py-10">
       <div className="text-center max-w-md">
         <div className="public-icon-well w-20 h-20 flex items-center justify-center mx-auto mb-6">
           <Clock className="w-9 h-9" style={{ strokeWidth: 1.5 }} />
@@ -19,6 +22,7 @@ export function SessionExpired() {
         >
           Log In Again
         </button>
+      </div>
       </div>
     </div>
   );

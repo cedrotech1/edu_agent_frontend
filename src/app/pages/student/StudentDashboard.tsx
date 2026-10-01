@@ -253,7 +253,7 @@ export function StudentDashboard() {
               <Card
                 key={quiz.id}
                 className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:border-gray-200 hover:shadow transition-all cursor-pointer"
-                onClick={() => navigate(`/student/quiz/${quiz.id}`)}
+                onClick={() => navigate(`/student/quiz/${quiz.id}/lobby`)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>

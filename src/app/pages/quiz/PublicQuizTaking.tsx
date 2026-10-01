@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { PublicNav } from "../../components/PublicNav";
 
 const QUESTIONS = [
   { q: "What is 2 + 2?",             options: ["3", "4", "5", "6"],     answer: 1 },
@@ -16,16 +17,8 @@ export function PublicQuizTaking() {
 
   if (!started) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
-        {/* Top bar */}
-        <div className="bg-white border-b border-[#E2E8F0] px-6 py-4 flex items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#272757] rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-black">Q</span>
-            </div>
-            <span className="font-bold text-[#0F0E47]">QuizMind AI</span>
-          </div>
-        </div>
+      <div className="public-page min-h-screen">
+        <PublicNav />
         <div className="max-w-2xl mx-auto px-4 py-12">
           <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 shadow-sm text-center">
             <h1 className="text-2xl font-bold text-[#0F0E47] mb-2">Algebra Chapter 3 — End of Term</h1>
@@ -48,15 +41,10 @@ export function PublicQuizTaking() {
   const progress = ((current + 1) / QUESTIONS.length) * 100;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <div className="bg-white border-b border-[#E2E8F0] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#272757] rounded-lg flex items-center justify-center">
-            <span className="text-white text-sm font-black">Q</span>
-          </div>
-          <span className="font-bold text-[#0F0E47]">QuizMind AI</span>
-        </div>
-        <span className="text-sm text-[#64748B]">Question {current + 1} of {QUESTIONS.length}</span>
+    <div className="public-page min-h-screen">
+      <PublicNav />
+      <div className="max-w-2xl mx-auto px-4 pt-6">
+        <p className="text-sm text-[#64748B] text-right">Question {current + 1} of {QUESTIONS.length}</p>
       </div>
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="w-full h-2 bg-[#E2E8F0] rounded-full mb-6 overflow-hidden">

@@ -286,6 +286,82 @@ export const api = {
       description?: string;
     }) =>
       apiRequest<DataResponse>("/quizzes/generate", { method: "POST", body }),
+    generateStream: async (
+      body: {
+        topic: string;
+        subject: string;
+        educationLevel?: string;
+        subLevel?: string;
+        numQuestions?: number | string;
+        questionType?: string;
+        description?: string;
+      },
+      handlers: {
+        onStatus?: (message: string) => void;
+        onReasoning?: (text: string) => void;
+        onDelta?: (text: string) => void;
+      }
+    ) => {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/quizzes/generate/stream`, {
+        method: "POST",
+        headers: {
+          Accept: "text/event-stream",
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        let msg = "Failed to generate quiz";
+        try {
+          const j = await res.json();
+          msg = j?.message || msg;
+        } catch {
+          /* ignore */
+        }
+        throw new ApiError(msg, res.status);
+      }
+      if (!res.body) throw new ApiError("No stream from quiz generator", 502);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let donePayload: any = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+        for (const part of parts) {
+          const dataLine = part.split("\n").find((l) => l.startsWith("data:"));
+          if (!dataLine) continue;
+          const raw = dataLine.slice(5).trim();
+          if (!raw) continue;
+          let event: any;
+          try {
+            event = JSON.parse(raw);
+          } catch {
+            continue;
+          }
+          if (event.type === "status" && event.message) handlers.onStatus?.(event.message);
+          if (event.type === "reasoning" && event.text) handlers.onReasoning?.(event.text);
+          if (event.type === "delta" && event.text) handlers.onDelta?.(event.text);
+          if (event.type === "error") throw new ApiError(event.message || "Failed to generate quiz", 502);
+          if (event.type === "done") donePayload = event;
+        }
+      }
+
+      if (!donePayload?.data) throw new ApiError("Quiz generator ended without questions", 502);
+      return donePayload as {
+        data: { title?: string; questions?: unknown[]; source?: string };
+        warning?: string;
+        message?: string;
+      };
+    },
     byCode: (code: string) =>
       apiRequest<DataResponse>(`/quizzes/by-code/${encodeURIComponent(code)}`),
     get: (id: string | number, opts?: { accessCode?: string }) => {

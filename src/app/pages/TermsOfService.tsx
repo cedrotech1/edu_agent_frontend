@@ -1,28 +1,10 @@
-import { useNavigate } from "react-router";
-import { ArrowLeft, ArrowUp } from "lucide-react";
+import { ArrowUp } from "lucide-react";
+import { PublicNav } from "../components/PublicNav";
 
 export function TermsOfService() {
-  const navigate = useNavigate();
-
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Header */}
-      <header className="sticky top-0 bg-white border-b border-[#E2E8F0] z-10">
-        <div className="max-w-[720px] mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-[#272757] rounded-lg flex items-center justify-center">
-              <span className="text-white text-xs font-black">Q</span>
-            </div>
-            <span className="font-bold text-[#0F0E47]">QuizMind AI</span>
-          </div>
-          <button
-            onClick={() => navigate(-1)}
-            className="text-sm text-[#272757] hover:text-[#505081] flex items-center gap-1 font-medium"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back
-          </button>
-        </div>
-      </header>
+    <div className="public-page min-h-screen">
+      <PublicNav />
 
       {/* Content */}
       <div className="max-w-[720px] mx-auto px-6 py-12">

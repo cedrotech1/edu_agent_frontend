@@ -1,11 +1,14 @@
 import { useNavigate } from "react-router";
 import { CheckCircle2 } from "lucide-react";
+import { PublicNav } from "../../components/PublicNav";
 
 export function PublicQuizThankYou() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+    <div className="public-page min-h-screen flex flex-col">
+      <PublicNav />
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md text-center">
         <div className="flex flex-col items-center mb-8">
           <div className="w-12 h-12 bg-[#272757] rounded-xl flex items-center justify-center mb-3">
@@ -29,6 +32,7 @@ export function PublicQuizThankYou() {
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

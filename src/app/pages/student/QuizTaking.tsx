@@ -5,7 +5,7 @@ import { Card } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Textarea } from "../../components/ui/textarea";
 import { Progress } from "../../components/ui/progress";
-import { Clock, Sparkles, AlertCircle, Lock } from "lucide-react";
+import { Clock, Sparkles, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { getQuizAccessCode, clearQuizAccessCode } from "@/lib/quizAccess";
@@ -50,7 +50,7 @@ export function QuizTaking() {
   const { quizId } = useParams();
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [stage, setStage] = useState<"lobby" | "taking" | "submitted">("lobby");
+  const [stage, setStage] = useState<"taking" | "submitted">("taking");
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, any>>({});
   const [timeLeft, setTimeLeft] = useState(30 * 60);
@@ -79,6 +79,7 @@ export function QuizTaking() {
           questions: Array.isArray(data.questions) ? data.questions : [],
         });
         setTimeLeft((data.timeLimit || 30) * 60);
+        setStartedAt(Date.now());
       } catch (err) {
         const message =
           err instanceof ApiError ? err.message : "Failed to load quiz";
@@ -93,7 +94,7 @@ export function QuizTaking() {
   }, [quizId, navigate]);
 
   useEffect(() => {
-    if (stage === "taking") {
+    if (stage === "taking" && quiz) {
       timerRef.current = setInterval(() => {
         setTimeLeft((t) => {
           if (t <= 1) {
@@ -109,7 +110,7 @@ export function QuizTaking() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage]);
+  }, [stage, quiz]);
 
   const isClosed = quiz?.status === "closed" || quiz?.status === "completed";
   const isLow = timeLeft < 5 * 60;
@@ -137,11 +138,6 @@ export function QuizTaking() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleStart = () => {
-    setStartedAt(Date.now());
-    setStage("taking");
   };
 
   const handleAnswer = (questionId: number, answer: any) => {
@@ -197,59 +193,6 @@ export function QuizTaking() {
     );
   }
 
-  if (stage === "lobby") {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl bg-white rounded-xl border border-gray-100 shadow-sm p-8">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-[#272757]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Sparkles className="w-10 h-10 text-[#272757]" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">{quiz.title}</h1>
-            <p className="text-lg text-gray-600 mb-8">
-              {asLabel(quiz.subject)} • {asLabel(quiz.teacherName || quiz.teacher)}
-              {quiz.className || quiz.class
-                ? ` • ${asLabel(quiz.className || quiz.class)}`
-                : ""}
-            </p>
-
-            <div className="grid grid-cols-2 gap-6 mb-8">
-              <div className="bg-gray-50 rounded-2xl p-6">
-                <Clock className="w-8 h-8 text-[#272757] mx-auto mb-2" />
-                <p className="text-gray-600 text-sm">Time Limit</p>
-                <p className="text-2xl font-bold text-gray-800">{quiz.timeLimit || 30} min</p>
-              </div>
-              <div className="bg-gray-50 rounded-2xl p-6">
-                <Sparkles className="w-8 h-8 text-[#10B981] mx-auto mb-2" />
-                <p className="text-gray-600 text-sm">Questions</p>
-                <p className="text-2xl font-bold text-gray-800">{quiz.questions.length}</p>
-              </div>
-            </div>
-
-            <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-2xl p-4 mb-8">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-[#F59E0B] mt-0.5" />
-                <div className="text-left">
-                  <p className="font-semibold text-gray-800 mb-1">Important Reminder</p>
-                  <p className="text-sm text-gray-700">
-                    Write answers in your own words. AI will detect copied content.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Button
-              onClick={handleStart}
-              className="w-full bg-gradient-to-r from-[#272757] to-[#505081] hover:from-[#505081] hover:to-[#505081] text-white py-6 rounded-2xl text-lg font-semibold shadow-lg"
-            >
-              Start Quiz 🚀
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   if (stage === "submitted") {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
@@ -273,6 +216,16 @@ export function QuizTaking() {
   }
 
   const question = quiz.questions[currentQuestion];
+  if (!question) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F9F9FF]">
+        <Card className="p-8 rounded-2xl text-center">
+          <p className="mb-4 text-gray-600">This quiz has no questions yet.</p>
+          <Button onClick={() => navigate("/student/quizzes")}>Back to My Quizzes</Button>
+        </Card>
+      </div>
+    );
+  }
   const progress = ((currentQuestion + 1) / quiz.questions.length) * 100;
 
   return (
@@ -334,14 +287,6 @@ export function QuizTaking() {
                 className="w-full min-h-[200px] rounded-2xl border border-gray-200 focus:border-[#272757] px-4 py-4"
                 placeholder="Type your answer here..."
               />
-              <div className="mt-4 bg-[#272757]/10 border border-[#272757]/30 rounded-xl p-3">
-                <div className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-[#272757] mt-0.5" />
-                  <p className="text-sm text-gray-700">
-                    Write in your own words — AI will review 🤖 No copy-paste allowed!
-                  </p>
-                </div>
-              </div>
             </div>
           )}
 

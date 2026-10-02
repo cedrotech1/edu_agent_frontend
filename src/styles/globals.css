@@ -312,12 +312,27 @@ html.dark .qm-modal {
 }
 html.dark .qm-section-heading { color: #ececf6; }
 html.dark .qm-btn-ghost { color: #ececf6; border-color: #8d8eb8; }
-html.dark .qm-table th { background: #232838; color: #b7b7c9; border-color: #2e3448; }
-html.dark .qm-table td { color: #ececf6; border-color: #2e3448; }
-html.dark .qm-table tbody tr:nth-child(odd) { background: #1c2030; }
-html.dark .qm-table tbody tr:nth-child(even) { background: #181c28; }
+html.dark .qm-table,
+html.dark .qm-table thead,
+html.dark .qm-table tbody,
+html.dark .qm-table tr,
+html.dark .qm-table th,
+html.dark .qm-table td {
+  background-color: #1c2030 !important;
+  color: #f4f4fa !important;
+  border-color: #2e3448 !important;
+}
+html.dark .qm-table th {
+  background-color: #232838 !important;
+  color: #c9c9da !important;
+}
+html.dark .qm-table tbody tr:nth-child(even),
+html.dark .qm-table tbody tr:nth-child(even) td {
+  background-color: #181c28 !important;
+}
 html.dark .qm-table tbody tr:hover,
-html.dark .qm-hover:hover { background: #2a3148 !important; }
+html.dark .qm-table tbody tr:hover td,
+html.dark .qm-hover:hover { background-color: #2a3148 !important; }
 html.dark .qm-badge-draft,
 html.dark .qm-badge-scheduled,
 html.dark .qm-badge-info { background: #2a3148; color: #ececf6; }
@@ -341,8 +356,81 @@ html.dark .public-icon-well {
 html.dark aside .bg-white { background-color: #ffffff !important; }
 html.dark aside .text-\[\#2563EB\] { color: #2563EB !important; }
 html.dark aside .text-\[\#8686AC\] { color: #a8a8c4 !important; }
+html.dark [class*="text-[#272757]"],
+html.dark [class*="text-[#0F0E47]"],
+html.dark [class*="text-[#1A1952]"],
+html.dark [class*="text-[#505081]"],
+html.dark [class*="text-[#2563EB]"] {
+  color: #ffffff !important;
+}
+html.dark [class*="bg-[#EDE9FE]"],
+html.dark [class*="bg-[#272757]/10"],
+html.dark [class*="bg-[#272757]/6"] {
+  background-color: #2c3350 !important;
+}
+html.dark [class*="bg-gray-50/"] {
+  background-color: #181c28 !important;
+}
+html.dark [class*="text-[#10B981]"],
+html.dark [class*="text-[#065F46]"],
+html.dark [class*="text-[#059669]"] { color: #6ee7b7 !important; }
+html.dark [class*="bg-[#D1FAE5]"] { background-color: #12352c !important; }
+html.dark [class*="text-[#92400E]"],
+html.dark [class*="text-[#B45309]"] { color: #fcd34d !important; }
+html.dark [class*="bg-[#FEF3C7]"],
+html.dark [class*="bg-amber-100"] { background-color: #3a3018 !important; }
+html.dark [class*="text-amber-700"] { color: #fcd34d !important; }
+html.dark [class*="text-[#991B1B]"] { color: #fca5a5 !important; }
+html.dark [class*="bg-[#FEE2E2]"],
+html.dark [class*="bg-red-100"] { background-color: #3a1d24 !important; }
+html.dark [class*="text-red-600"] { color: #fca5a5 !important; }
+html.dark aside [class*="text-[#2563EB]"] { color: #2563EB !important; }
 html.dark [data-sonner-toast] {
   background: #1c2030 !important;
   color: #ececf6 !important;
   border-color: #2e3448 !important;
+}
+
+/* Blue brand text and icons become white. Status greens, ambers, and reds stay. */
+html.dark [class*="text-[#272757]"],
+html.dark [class*="text-[#0F0E47]"],
+html.dark [class*="text-[#1A1952]"],
+html.dark [class*="text-[#505081]"],
+html.dark [class*="text-[#2563EB]"],
+html.dark [class*="text-[#3730A3]"] {
+  color: #ffffff !important;
+}
+html.dark aside [class*="text-[#2563EB]"] {
+  color: #2563EB !important;
+}
+html.dark [class*="bg-[#EDE9FE]"],
+html.dark [class*="bg-[#272757]/10"],
+html.dark [class*="bg-[#272757]/6"] {
+  background-color: #2c3348 !important;
+  color: #ffffff !important;
+}
+html.dark .qm-table,
+html.dark .qm-table thead,
+html.dark .qm-table tbody,
+html.dark .qm-table tr,
+html.dark .qm-table th,
+html.dark .qm-table td {
+  background-color: #1b2030 !important;
+  color: #f4f4fb !important;
+  border-color: #2e3448 !important;
+}
+html.dark .qm-table th {
+  background-color: #232838 !important;
+  color: #c9c9da !important;
+}
+html.dark .qm-table tbody tr:nth-child(even),
+html.dark .qm-table tbody tr:nth-child(even) td {
+  background-color: #151926 !important;
+}
+html.dark .qm-table tbody tr:hover,
+html.dark .qm-table tbody tr:hover td {
+  background-color: #2a3148 !important;
+}
+html.dark [class*="bg-gray-50/50"] {
+  background-color: #151926 !important;
 }

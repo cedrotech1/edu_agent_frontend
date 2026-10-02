@@ -210,7 +210,12 @@ export const api = {
       primarySchoolId?: number;
       role: UserRole;
     }) =>
-      apiRequest<{ success: boolean; message?: string }>("/auth/register", {
+      apiRequest<{
+        success: boolean;
+        message?: string;
+        emailSent?: boolean;
+        verificationUrl?: string;
+      }>("/auth/register", {
         method: "POST",
         auth: false,
         body: {
@@ -234,16 +239,32 @@ export const api = {
         { method: "GET", auth: false }
       ),
     resendVerification: (email: string) =>
-      apiRequest<{ success: boolean; message?: string }>("/auth/resend-verification", {
+      apiRequest<{
+        success: boolean;
+        message?: string;
+        emailSent?: boolean;
+        verificationUrl?: string;
+      }>("/auth/resend-verification", {
         method: "POST",
         auth: false,
         body: { email },
       }),
     forgotPassword: (email: string) =>
-      apiRequest<{ success: boolean; message?: string }>("/auth/forgot-password", {
+      apiRequest<{
+        success: boolean;
+        message?: string;
+        emailSent?: boolean;
+        resetCode?: string;
+      }>("/auth/forgot-password", {
         method: "POST",
         auth: false,
         body: { email },
+      }),
+    resetPassword: (body: { email: string; code: string; newPassword: string }) =>
+      apiRequest<{ success: boolean; message?: string }>("/auth/reset-password", {
+        method: "POST",
+        auth: false,
+        body,
       }),
   },
 
@@ -441,6 +462,7 @@ export const api = {
       email: string;
       role: string;
       school?: string;
+      password: string;
     }) => apiRequest<DataResponse>("/users", { method: "POST", body }),
     update: (id: string | number, body: Record<string, unknown>) =>
       apiRequest<DataResponse>(`/users/${id}`, { method: "PATCH", body }),

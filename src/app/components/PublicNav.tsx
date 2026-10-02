@@ -4,6 +4,13 @@ import { Logo } from "./Logo";
 
 export function PublicNav() {
   const navigate = useNavigate();
+  const goHome = () => {
+    if (window.location.pathname === "/") {
+      window.location.assign("/");
+      return;
+    }
+    navigate("/");
+  };
 
   return (
     <nav className="public-nav">
@@ -11,7 +18,7 @@ export function PublicNav() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <button
             type="button"
-            onClick={() => navigate("/")}
+            onClick={goHome}
             className="rounded-xl focus:outline-none shrink-0"
             aria-label="QuizMind AI home"
           >
@@ -20,7 +27,7 @@ export function PublicNav() {
           <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="ghost"
-              onClick={() => navigate("/")}
+              onClick={goHome}
               className="text-[#505081] hover:text-[#272757] hover:bg-[#272757]/6 rounded-xl px-3 sm:px-4 h-11"
             >
               Home

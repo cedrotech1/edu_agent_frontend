@@ -99,6 +99,9 @@ export function TeacherDashboard() {
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [schoolOptions, setSchoolOptions] = useState<Array<{ id: number; name: string }>>([]);
+  const [schoolId, setSchoolId] = useState("");
+  const [joinedSchoolIds, setJoinedSchoolIds] = useState<number[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -122,25 +125,40 @@ export function TeacherDashboard() {
     load();
   }, [load]);
 
+  const openClassModal = async () => {
+    setShowClassModal(true);
+    try {
+      const mineRes = await api.schools.mine().catch(() => ({ data: [] as any[] }));
+      const mine = ((mineRes.data as any[]) || []).map((s: any) => ({ id: s.id, name: s.name }));
+      setJoinedSchoolIds(mine.map((s) => s.id));
+      const options = mine.length
+        ? mine
+        : (((await api.schools.public()).data as any[]) || []).map((s: any) => ({ id: s.id, name: s.name }));
+      setSchoolOptions(options);
+      setSchoolId(options[0] ? String(options[0].id) : "");
+    } catch {
+      setSchoolOptions([]);
+      setSchoolId("");
+    }
+  };
+
   const handleCreateClass = async () => {
-    if (!className || !subject || !educationLevel || !sublevel) {
-      toast.error("Please fill in all fields");
+    if (!className || !subject || !educationLevel || !sublevel || !schoolId) {
+      toast.error("Please fill in all fields, including the school");
       return;
     }
     setCreating(true);
     try {
-      const schoolsRes = await api.schools.mine();
-      const schools = (schoolsRes.data as any[]) || [];
-      if (!schools.length) {
-        toast.error("Join a school first (admin must add schools, then select them on signup/settings)");
-        return;
+      const chosen = Number(schoolId);
+      if (!joinedSchoolIds.includes(chosen)) {
+        await api.schools.updateMine([chosen], chosen);
       }
       await api.classes.create({
         name: className,
         subject,
         educationLevel,
         subLevel: sublevel,
-        schoolId: Number(schools[0].id),
+        schoolId: chosen,
       });
       toast.success("Class created successfully!", {
         description: `${className} is ready for students to join.`,
@@ -240,7 +258,7 @@ export function TeacherDashboard() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-[#0F0E47]">My Classes</h2>
             <button
-              onClick={() => setShowClassModal(true)}
+              onClick={openClassModal}
               className="text-xs font-medium text-[#272757] hover:underline flex items-center gap-1"
             >
               <Plus className="w-3.5 h-3.5" /> New class
@@ -258,7 +276,7 @@ export function TeacherDashboard() {
                   Create your first class and invite students with a join code.
                 </p>
                 <Button
-                  onClick={() => setShowClassModal(true)}
+                  onClick={openClassModal}
                   className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-9 px-4 text-sm"
                 >
                   <Plus className="w-4 h-4 mr-1.5" />
@@ -311,7 +329,7 @@ export function TeacherDashboard() {
 
             {classes.length > 0 && (
               <button
-                onClick={() => setShowClassModal(true)}
+                onClick={openClassModal}
                 className="w-full border border-dashed border-gray-200 text-gray-500 hover:border-[#272757]/40 hover:text-[#272757] py-3.5 rounded-xl text-sm flex items-center justify-center gap-1.5 transition-colors"
               >
                 <Plus className="w-4 h-4" />
@@ -398,6 +416,22 @@ export function TeacherDashboard() {
             <h3 className="text-base font-semibold text-[#0F0E47] mb-5">Create New Class</h3>
 
             <div className="space-y-4 mb-6">
+              <div>
+                <Label className="text-xs font-medium text-gray-600 mb-1.5 block">School</Label>
+                <Select value={schoolId} onValueChange={setSchoolId}>
+                  <SelectTrigger className="rounded-xl border border-gray-200 h-10 text-sm">
+                    <SelectValue placeholder="Select school" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {schoolOptions.map((s) => (
+                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {schoolOptions.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">No schools are on the platform yet. An admin needs to add one first.</p>
+                )}
+              </div>
               <div>
                 <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
                   Class Name

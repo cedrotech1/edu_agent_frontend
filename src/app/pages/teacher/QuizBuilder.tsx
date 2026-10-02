@@ -421,7 +421,7 @@ export function QuizBuilder() {
   const [showSuccess, setShowSuccess] = useState<"draft" | "active" | null>(null);
   const [selectedClass, setSelectedClass] = useState("");
   const [classes, setClasses] = useState<{ id: number; name: string }[]>([]);
-  const [saving, setSaving] = useState(false);
+  const [savingAs, setSavingAs] = useState<"draft" | "active" | null>(null);
   const [quizId, setQuizId] = useState<number | null>(editId ? Number(editId) : null);
   const [loadingQuiz, setLoadingQuiz] = useState(Boolean(editId));
 
@@ -555,6 +555,22 @@ export function QuizBuilder() {
     }
   };
 
+  const questionPayload = (list: Question[]) =>
+    list.map((q, order) => ({
+      type: q.type,
+      question: q.question,
+      options: q.options,
+      correct: q.correct,
+      modelAnswer: q.modelAnswer,
+      points: q.points,
+      order,
+    }));
+
+  const persistQuestions = async (list: Question[]) => {
+    if (!quizId) return;
+    await api.quizzes.update(quizId, { questions: questionPayload(list) });
+  };
+
   const buildPayload = (status: "draft" | "active") => {
     let deadlineIso: string | undefined;
     if (deadline) {
@@ -571,15 +587,7 @@ export function QuizBuilder() {
       lockAfterDeadline,
       instantResults,
       status,
-      questions: questions.map((q, order) => ({
-        type: q.type,
-        question: q.question,
-        options: q.options,
-        correct: q.correct,
-        modelAnswer: q.modelAnswer,
-        points: q.points,
-        order,
-      })),
+      questions: questionPayload(questions),
     };
   };
 
@@ -592,7 +600,7 @@ export function QuizBuilder() {
       toast.error("Add at least one question before publishing");
       return;
     }
-    setSaving(true);
+    setSavingAs(status);
     try {
       const payload = buildPayload(status);
       let created: any;
@@ -616,29 +624,46 @@ export function QuizBuilder() {
             : "Failed to publish quiz"
       );
     } finally {
-      setSaving(false);
+      setSavingAs(null);
     }
   };
 
-  const handleSaveQuestion = (q: Omit<Question, "id">) => {
-    if (editingQuestion) {
-      setQuestions((prev) =>
-        prev.map((item) => (item.id === editingQuestion.id ? { ...q, id: item.id } : item))
-      );
-      setEditingQuestion(null);
-      toast.success("Question updated");
-    } else {
-      setQuestions((prev) => {
-        const id = prev.reduce((m, item) => Math.max(m, Number(item.id) || 0), 0) + 1;
-        return [...prev, { ...q, id }];
+  const handleSaveQuestion = async (q: Omit<Question, "id">) => {
+    const next = editingQuestion
+      ? questions.map((item) => (item.id === editingQuestion.id ? { ...q, id: item.id } : item))
+      : [
+          ...questions,
+          {
+            ...q,
+            id: questions.reduce((m, item) => Math.max(m, Number(item.id) || 0), 0) + 1,
+          },
+        ];
+    setQuestions(next);
+    setEditingQuestion(null);
+    setShowAddModal(false);
+    if (!quizId) {
+      toast.success(editingQuestion ? "Question updated" : "Question added", {
+        description: "Save the quiz to keep this change.",
       });
-      setShowAddModal(false);
-      toast.success("Question added");
+      return;
+    }
+    try {
+      await persistQuestions(next);
+      toast.success(editingQuestion ? "Question saved" : "Question added");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not save the question");
     }
   };
 
-  const handleDeleteQuestion = (id: number) => {
-    setQuestions((prev) => prev.filter((q) => q.id !== id));
+  const handleDeleteQuestion = async (id: number) => {
+    const next = questions.filter((q) => q.id !== id);
+    setQuestions(next);
+    if (!quizId) return;
+    try {
+      await persistQuestions(next);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not delete the question");
+    }
   };
 
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
@@ -836,20 +861,20 @@ export function QuizBuilder() {
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
-            disabled={saving}
+            disabled={savingAs !== null}
             onClick={() => saveQuiz("draft")}
             className="border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-9 px-4 text-sm gap-1.5"
           >
             <Save className="w-3.5 h-3.5" />
-            {saving ? "Saving…" : "Save draft"}
+            {savingAs === "draft" ? "Saving…" : "Save draft"}
           </Button>
           <Button
-            disabled={saving}
+            disabled={savingAs !== null}
             onClick={() => saveQuiz("active")}
             className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-9 px-4 text-sm gap-1.5"
           >
             <Send className="w-3.5 h-3.5" />
-            {saving ? "Publishing…" : "Publish"}
+            {savingAs === "active" ? "Publishing…" : "Publish"}
           </Button>
         </div>
       </div>

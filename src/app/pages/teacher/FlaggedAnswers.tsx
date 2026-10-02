@@ -40,18 +40,30 @@ export function FlaggedAnswers() {
         const d: any = res.data || {};
         const rows = Array.isArray(d) ? d : d.answers || d.items || [];
         setQuizTitle(d.quizTitle || d.title || "Flagged Answers");
+        const textOf = (value: any, fallback = "") => {
+          if (value == null) return fallback;
+          if (typeof value === "string" || typeof value === "number") return String(value);
+          if (typeof value === "object") {
+            return value.name || value.names || value.question || value.text || fallback;
+          }
+          return fallback;
+        };
         setAnswers(
-          rows.map((a: any) => ({
-            id: a.id,
-            student: a.student || a.studentName || "Student",
-            initials: a.initials || initials(a.student || a.studentName),
-            question: a.question || a.questionText || "",
-            answer: a.answer || a.studentAnswer || "",
-            aiScore: a.aiScore ?? 0,
-            confidence: a.confidence ?? 0,
-            overridden: Boolean(a.overridden),
-            manualScore: a.manualScore ?? null,
-          }))
+          rows.map((a: any) => {
+            const studentName = textOf(a.studentName || a.student, "Student");
+            const answerText = textOf(a.studentAnswer || a.answer, "");
+            return {
+              id: a.id,
+              student: studentName,
+              initials: a.initials || initials(studentName),
+              question: textOf(a.questionText || a.question, ""),
+              answer: answerText,
+              aiScore: a.aiScore ?? 0,
+              confidence: a.confidence ?? 0,
+              overridden: Boolean(a.overridden),
+              manualScore: a.manualScore ?? null,
+            };
+          })
         );
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : "Failed to load flagged answers");

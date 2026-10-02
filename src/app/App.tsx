@@ -5,6 +5,10 @@ import { OfflineBanner } from './components/OfflineBanner';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { AuthProvider } from '@/lib/auth';
 
+if (typeof document !== "undefined" && localStorage.getItem("quizmind_theme") === "dark") {
+  document.documentElement.classList.add("dark");
+}
+
 export default function App() {
   return (
     <AuthProvider>

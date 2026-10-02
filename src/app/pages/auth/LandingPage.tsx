@@ -55,7 +55,15 @@ export function LandingPage() {
   );
   const [showCTA, setShowCTA] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [waitStep, setWaitStep] = useState(0);
   const [streamingText, setStreamingText] = useState("");
+  const waitSteps = [
+    "Connecting",
+    "Processing",
+    "Analysis",
+    "First draft",
+    "Finishing up",
+  ];
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,6 +71,17 @@ export function LandingPage() {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, [chatHistory, streamingText]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setWaitStep(0);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setWaitStep((step) => Math.min(step + 1, waitSteps.length - 1));
+    }, 900);
+    return () => window.clearInterval(timer);
+  }, [isLoading, waitSteps.length]);
 
   const handleSubmit = async (question: string) => {
     const userQuestion = question || prompt;
@@ -199,7 +218,13 @@ export function LandingPage() {
                           <span className="inline-block w-1.5 h-4 ml-0.5 bg-[#272757]/50 animate-pulse align-middle" />
                         </p>
                       ) : (
-                        <p className="text-[#8686AC] text-sm">Connecting to AI…</p>
+                        <ul className="space-y-1">
+                          {waitSteps.slice(0, waitStep + 1).map((step) => (
+                            <li key={step} className="text-sm text-[#505081]">
+                              {step}…
+                            </li>
+                          ))}
+                        </ul>
                       )}
                     </div>
                   </div>

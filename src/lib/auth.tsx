@@ -32,7 +32,7 @@ interface AuthContextValue {
     schoolIds: number[];
     primarySchoolId?: number;
     role: UserRole;
-  }) => Promise<{ success: boolean; message?: string }>;
+  }) => Promise<{ success: boolean; message?: string; verificationUrl?: string; emailSent?: boolean }>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<AuthUser | null>;
   setSession: (token: string, user: AuthUser) => void;
@@ -121,7 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: UserRole;
     }) => {
       const res = await api.auth.register(payload);
-      // Registration no longer returns token/user - user must verify email first
       return res;
     },
     []

@@ -17,6 +17,9 @@ import { toast } from "sonner";
 import { api, ApiError, initials } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { AppShell } from "../../components/AppShell";
+import { PasswordField } from "../../components/PasswordField";
+import { EmailPasswordReset } from "../../components/EmailPasswordReset";
+import { passwordError } from "@/lib/password";
 
 function pickProfile(user: Record<string, unknown> | null | undefined) {
   if (!user) {
@@ -48,6 +51,10 @@ export function TeacherSettings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showEmailReset, setShowEmailReset] = useState(false);
+  const [schoolChoices, setSchoolChoices] = useState<Array<{ id: number; name: string }>>([]);
+  const [selectedSchools, setSelectedSchools] = useState<number[]>([]);
+  const [savingSchools, setSavingSchools] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,21 +78,21 @@ export function TeacherSettings() {
     if (user) setProfile(pickProfile(user as any));
   }, [user]);
 
-  const handlePasswordReset = async () => {
-    const email = profile.email?.trim();
-    if (!email) {
-      toast.error("No email on your profile");
-      return;
-    }
-    try {
-      await api.auth.forgotPassword(email);
-      toast.success("Password reset link sent!", {
-        description: "Check your email for the reset link.",
-      });
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to send reset email");
-    }
-  };
+  useEffect(() => {
+    (async () => {
+      try {
+        const [mineRes, pubRes] = await Promise.all([
+          api.schools.mine(),
+          api.schools.public(),
+        ]);
+        const mine = ((mineRes.data as any[]) || []).map((s: any) => s.id as number);
+        setSelectedSchools(mine);
+        setSchoolChoices(((pubRes.data as any[]) || []).map((s: any) => ({ id: s.id, name: s.name })));
+      } catch {
+        setSchoolChoices([]);
+      }
+    })();
+  }, []);
 
   const handlePasswordChange = async () => {
     if (!currentPassword || !newPassword) {
@@ -96,8 +103,9 @@ export function TeacherSettings() {
       toast.error("Passwords don't match!");
       return;
     }
-    if (newPassword.length < 8) {
-      toast.error("New password must be at least 8 characters");
+    const problem = passwordError(newPassword);
+    if (problem) {
+      toast.error(problem);
       return;
     }
     setChangingPassword(true);
@@ -210,8 +218,61 @@ export function TeacherSettings() {
               ))}
             </div>
             <p className="text-xs text-gray-400 pb-5 pt-1">
-              Profile details are managed by your account. Contact an admin to update your name or school.
+              Your name is set on the account. Schools you belong to can be updated below.
             </p>
+          </div>
+        </Card>
+
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-[#272757]" strokeWidth={1.75} />
+            <h2 className="text-sm font-semibold text-[#0F0E47]">My schools</h2>
+          </div>
+          <div className="p-5 space-y-3">
+            <p className="text-xs text-gray-500">
+              The school you picked at signup is already yours. Add or remove schools here, then create classes for them.
+            </p>
+            {schoolChoices.length === 0 ? (
+              <p className="text-sm text-amber-700">No schools have been added by an admin yet.</p>
+            ) : (
+              schoolChoices.map((school) => (
+                <label key={school.id} className="flex items-center gap-2 text-sm text-[#0F0E47]">
+                  <input
+                    type="checkbox"
+                    checked={selectedSchools.includes(school.id)}
+                    onChange={() =>
+                      setSelectedSchools((prev) =>
+                        prev.includes(school.id) ? prev.filter((id) => id !== school.id) : [...prev, school.id]
+                      )
+                    }
+                  />
+                  {school.name}
+                </label>
+              ))
+            )}
+            <Button
+              type="button"
+              disabled={savingSchools || schoolChoices.length === 0}
+              onClick={async () => {
+                if (!selectedSchools.length) {
+                  toast.error("Select at least one school");
+                  return;
+                }
+                setSavingSchools(true);
+                try {
+                  await api.schools.updateMine(selectedSchools, selectedSchools[0]);
+                  await refreshMe();
+                  toast.success("Schools updated");
+                } catch (err) {
+                  toast.error(err instanceof ApiError ? err.message : "Failed to update schools");
+                } finally {
+                  setSavingSchools(false);
+                }
+              }}
+              className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl h-10"
+            >
+              {savingSchools ? "Saving…" : "Save schools"}
+            </Button>
           </div>
         </Card>
 
@@ -229,7 +290,7 @@ export function TeacherSettings() {
               Change Password
             </Button>
             <Button
-              onClick={handlePasswordReset}
+              onClick={() => setShowEmailReset(true)}
               variant="outline"
               className="w-full border border-gray-200 text-[#272757] hover:bg-gray-50 rounded-xl h-10"
             >
@@ -293,48 +354,30 @@ export function TeacherSettings() {
               }}
               className="space-y-4 mb-6"
             >
-              <div>
-                <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
-                  Current Password
-                </Label>
-                <Input
-                  type="password"
-                  name="current-password"
-                  autoComplete="current-password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="rounded-xl border border-gray-200 h-10"
-                  placeholder="Enter current password"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
-                  New Password
-                </Label>
-                <Input
-                  type="password"
-                  name="new-password"
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="rounded-xl border border-gray-200 h-10"
-                  placeholder="Enter new password"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
-                  Confirm New Password
-                </Label>
-                <Input
-                  type="password"
-                  name="confirm-password"
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="rounded-xl border border-gray-200 h-10"
-                  placeholder="Confirm new password"
-                />
-              </div>
+              <PasswordField
+                label="Current Password"
+                name="current-password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={setCurrentPassword}
+                placeholder="Enter current password"
+              />
+              <PasswordField
+                label="New Password"
+                name="new-password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={setNewPassword}
+                placeholder="Letter and number, 8+ characters"
+              />
+              <PasswordField
+                label="Confirm New Password"
+                name="confirm-password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                placeholder="Confirm new password"
+              />
               <div className="flex gap-3 pt-2">
                 <Button
                   type="button"
@@ -356,6 +399,12 @@ export function TeacherSettings() {
           </Card>
         </div>
       )}
+
+      <EmailPasswordReset
+        email={profile.email}
+        open={showEmailReset}
+        onClose={() => setShowEmailReset(false)}
+      />
 
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">

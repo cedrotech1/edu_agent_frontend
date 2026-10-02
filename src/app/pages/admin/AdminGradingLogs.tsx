@@ -181,7 +181,13 @@ export function AdminGradingLogs() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((l) => (
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-6 py-12 text-center text-sm text-gray-500">
+                  No results found
+                </td>
+              </tr>
+            ) : filtered.map((l) => (
               <tr key={l.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 text-sm font-medium text-[#0F0E47]">{l.quiz}</td>
                 <td className="px-6 py-4 text-sm text-gray-600">{l.student}</td>

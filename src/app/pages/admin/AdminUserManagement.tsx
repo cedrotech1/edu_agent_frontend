@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { AppShell } from "../../components/AppShell";
 import { api, ApiError, initials } from "@/lib/api";
 
-type UserStatus = "active" | "suspended";
+type UserStatus = "active" | "suspended" | "unverified";
 interface User {
   id: number; name: string; initials: string; email: string;
   role: string; school: string; status: UserStatus; quizzes: number;
@@ -29,7 +29,7 @@ export function AdminUserManagement() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newUser, setNewUser] = useState({ name: "", email: "", role: "student", school: "" });
+  const [newUser, setNewUser] = useState({ name: "", email: "", role: "student", school: "", password: "" });
   const [addErrors, setAddErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +49,13 @@ export function AdminUserManagement() {
           email: u.email,
           role: u.role,
           school: u.school || "",
-          status: (u.status === "suspended" || u.active === 0 ? "suspended" : "active") as UserStatus,
+          status: (u.status === "unverified"
+            ? "unverified"
+            : u.status === "suspended" || (u.active === 0 && u.status !== "unverified" && !u.verificationToken)
+              ? "suspended"
+              : u.active === 0
+                ? "unverified"
+                : "active") as UserStatus,
           quizzes: u.quizzes ?? u.quizCount ?? 0,
         }))
       );
@@ -75,6 +81,7 @@ export function AdminUserManagement() {
   const toggleStatus = async (id: number) => {
     const u = users.find((x) => x.id === id);
     if (!u) return;
+    if (u.status === "unverified") return;
     const next: UserStatus = u.status === "active" ? "suspended" : "active";
     try {
       await api.users.setStatus(id, next);
@@ -91,6 +98,9 @@ export function AdminUserManagement() {
     if (!newUser.email.trim()) e.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email)) e.email = "Invalid email";
     if (!newUser.school.trim()) e.school = "School is required";
+    if (!newUser.password || newUser.password.length < 8 || !/[A-Za-z]/.test(newUser.password) || !/\d/.test(newUser.password)) {
+      e.password = "Password must be at least 8 characters and include a letter and a number";
+    }
     setAddErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -101,7 +111,7 @@ export function AdminUserManagement() {
       await api.users.create(newUser);
       toast.success(`${newUser.name} added successfully`);
       setShowAddModal(false);
-      setNewUser({ name: "", email: "", role: "student", school: "" });
+      setNewUser({ name: "", email: "", role: "student", school: "", password: "" });
       setAddErrors({});
       await loadUsers();
     } catch (err) {
@@ -185,9 +195,13 @@ export function AdminUserManagement() {
                   <td className="px-6 py-4 text-gray-600 text-sm">{u.school}</td>
                   <td className="px-6 py-4 text-center">
                     <Badge className={`rounded-full ${
-                      u.status === "active" ? "bg-[#10B981]/10 text-[#10B981]" : "bg-red-100 text-red-600"
+                      u.status === "active"
+                        ? "bg-[#10B981]/10 text-[#10B981]"
+                        : u.status === "unverified"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-red-100 text-red-600"
                     }`}>
-                      {u.status === "active" ? "✓ Active" : "✕ Suspended"}
+                      {u.status === "active" ? "✓ Active" : u.status === "unverified" ? "Unverified" : "✕ Suspended"}
                     </Badge>
                   </td>
                   <td className="px-6 py-4">
@@ -196,6 +210,7 @@ export function AdminUserManagement() {
                         className="p-2 text-[#272757] hover:bg-[#272757]/10 rounded-lg transition-colors" title="View Profile">
                         <Eye className="w-4 h-4" />
                       </button>
+                      {u.status !== "unverified" && (
                       <button onClick={() => toggleStatus(u.id)}
                         className={`p-2 rounded-lg transition-colors ${
                           u.status === "active"
@@ -204,6 +219,7 @@ export function AdminUserManagement() {
                         }`} title={u.status === "active" ? "Suspend" : "Activate"}>
                         {u.status === "active" ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
                       </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -286,6 +302,7 @@ export function AdminUserManagement() {
                 { key: "name", label: "Full Name", placeholder: "e.g. Alice Uwase", type: "text" },
                 { key: "email", label: "Email Address", placeholder: "alice@school.edu", type: "email" },
                 { key: "school", label: "School / Institution", placeholder: "e.g. Kigali Primary", type: "text" },
+                { key: "password", label: "Password", placeholder: "Letter and number, 8+ characters", type: "password" },
               ].map(({ key, label, placeholder, type }) => (
                 <div key={key}>
                   <Label className="mb-2 block text-gray-700">{label}</Label>

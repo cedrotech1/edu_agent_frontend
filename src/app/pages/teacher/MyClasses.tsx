@@ -70,6 +70,7 @@ export function MyClasses() {
   const [form, setForm] = useState(blankForm);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [mySchools, setMySchools] = useState<Array<{ id: number; name: string }>>([]);
+  const [joinedSchoolIds, setJoinedSchoolIds] = useState<number[]>([]);
   const [schoolFilter, setSchoolFilter] = useState("all");
 
   const load = useCallback(async () => {
@@ -77,11 +78,18 @@ export function MyClasses() {
     try {
       const [res, schoolsRes] = await Promise.all([
         api.classes.list(),
-        api.schools.mine(),
+        api.schools.mine().catch(() => ({ data: [] as any[] })),
       ]);
       const rows = (res.data as any[]) || [];
       setClasses(Array.isArray(rows) ? rows.map(mapClass) : []);
-      setMySchools(((schoolsRes.data as any[]) || []).map((s: any) => ({ id: s.id, name: s.name })));
+      const mine = ((schoolsRes.data as any[]) || []).map((s: any) => ({ id: s.id, name: s.name }));
+      setJoinedSchoolIds(mine.map((s) => s.id));
+      if (mine.length) {
+        setMySchools(mine);
+      } else {
+        const pub = await api.schools.public().catch(() => ({ data: [] as any[] }));
+        setMySchools(((pub.data as any[]) || []).map((s: any) => ({ id: s.id, name: s.name })));
+      }
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to load classes");
       setClasses([]);
@@ -130,12 +138,16 @@ export function MyClasses() {
     if (!validateForm()) return;
     setCreating(true);
     try {
+      const schoolId = Number(form.schoolId);
+      if (!joinedSchoolIds.includes(schoolId)) {
+        await api.schools.updateMine([schoolId], schoolId);
+      }
       await api.classes.create({
         name: form.name.trim(),
         subject: form.subject.trim(),
         educationLevel: form.level,
         subLevel: form.sublevel,
-        schoolId: Number(form.schoolId),
+        schoolId,
       });
       toast.success("Class created!", { description: `${form.name} is ready for students.` });
       setCreateOpen(false);
@@ -379,7 +391,7 @@ function ClassFormModal({
             </Select>
             {formErrors.schoolId && <p className="text-xs text-red-500 mt-1">{formErrors.schoolId}</p>}
             {schools.length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">Join a school from Settings, or ask an admin to add schools.</p>
+              <p className="text-xs text-amber-600 mt-1">No schools are on the platform yet. An admin needs to add one first.</p>
             )}
           </div>
           <div>

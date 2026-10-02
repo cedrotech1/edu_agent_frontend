@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { AppShell } from "../../components/AppShell";
 import { api, ApiError, initials } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { PasswordField } from "../../components/PasswordField";
+import { EmailPasswordReset } from "../../components/EmailPasswordReset";
 
 export function AdminSettings() {
   const navigate = useNavigate();
@@ -28,6 +30,7 @@ export function AdminSettings() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showEmailReset, setShowEmailReset] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -46,21 +49,6 @@ export function AdminSettings() {
       });
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to update profile");
-    }
-  };
-
-  const handlePasswordReset = async () => {
-    if (!email.trim()) {
-      toast.error("No email on your profile");
-      return;
-    }
-    try {
-      await api.auth.forgotPassword(email.trim());
-      toast.success("Password reset link sent!", {
-        description: "Check your email for the reset link.",
-      });
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to send reset email");
     }
   };
 
@@ -182,7 +170,7 @@ export function AdminSettings() {
             </Button>
 
             <Button
-              onClick={handlePasswordReset}
+              onClick={() => setShowEmailReset(true)}
               variant="outline"
               className="w-full border border-[#10B981] text-[#10B981] hover:bg-[#10B981]/10 py-3 rounded-xl"
             >
@@ -227,38 +215,9 @@ export function AdminSettings() {
             <h3 className="text-2xl font-bold text-gray-800 mb-6">Change Password</h3>
             
             <div className="space-y-4 mb-6">
-              <div>
-                <Label className="text-gray-700 mb-2 block">Current Password</Label>
-                <Input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="rounded-xl border border-gray-200 px-4 py-3"
-                  placeholder="Enter current password"
-                />
-              </div>
-
-              <div>
-                <Label className="text-gray-700 mb-2 block">New Password</Label>
-                <Input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="rounded-xl border border-gray-200 px-4 py-3"
-                  placeholder="Enter new password"
-                />
-              </div>
-
-              <div>
-                <Label className="text-gray-700 mb-2 block">Confirm New Password</Label>
-                <Input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="rounded-xl border border-gray-200 px-4 py-3"
-                  placeholder="Confirm new password"
-                />
-              </div>
+              <PasswordField label="Current Password" value={currentPassword} onChange={setCurrentPassword} placeholder="Enter current password" autoComplete="current-password" />
+              <PasswordField label="New Password" value={newPassword} onChange={setNewPassword} placeholder="Letter and number, 8+ characters" autoComplete="new-password" />
+              <PasswordField label="Confirm New Password" value={confirmPassword} onChange={setConfirmPassword} placeholder="Confirm new password" autoComplete="new-password" />
             </div>
 
             <div className="flex gap-3">
@@ -323,6 +282,7 @@ export function AdminSettings() {
           </Card>
         </div>
       )}
+      <EmailPasswordReset email={email} open={showEmailReset} onClose={() => setShowEmailReset(false)} />
     </AppShell>
   );
 }

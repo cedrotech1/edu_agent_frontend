@@ -131,10 +131,24 @@ export function QuizResults() {
       )
     : 0;
 
-  const handleExportResults = () => {
-    toast.success("Results exported successfully!", {
-      description: "The quiz results have been downloaded as CSV.",
-    });
+  const handleExportResults = async () => {
+    if (!quizId) return;
+    try {
+      const blob = await api.quizzes.exportResults(quizId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `quiz-${quizId}-results.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Results downloaded", {
+        description: "The CSV file should be in your downloads folder.",
+      });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to download results");
+    }
   };
 
   const stats = [

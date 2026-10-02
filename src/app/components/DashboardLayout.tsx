@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router";
 import { Badge } from "./ui/badge";
 import {
   ChevronLeft, ChevronRight, LogOut, User,
-  Settings as SettingsIcon, Menu, Search, Bell, Moon,
+  Settings as SettingsIcon, Menu, Search, Bell, Moon, Sun,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
@@ -43,12 +43,19 @@ export function DashboardLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [searchHits, setSearchHits] = useState<Array<{ label: string; detail: string; path: string }>>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const { avatarBg, badgeCls } = roleStyle[role];
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false);
     };
     document.addEventListener("mousedown", fn);
     return () => document.removeEventListener("mousedown", fn);
@@ -274,8 +281,8 @@ export function DashboardLayout({
 
           <div className="flex-1" />
 
-          {/* Search — only submit on Enter (not onChange) to avoid autofill hijacking */}
-          <div className="relative hidden md:block">
+          {/* Search stays on this page */}
+          <div className="relative hidden md:block" ref={searchRef}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8686AC] pointer-events-none" style={{ strokeWidth: 1.75 }} />
             <input
               type="search"
@@ -284,24 +291,89 @@ export function DashboardLayout({
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
+              value={searchQuery}
               placeholder="Search…"
               className="pl-9 pr-4 h-[38px] rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] text-sm focus:outline-none focus:ring-2 focus:ring-[#272757]/20 focus:border-[#272757] w-48 transition-all font-[Poppins] text-[#0F0E47]"
-              onKeyDown={(e) => {
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={async (e) => {
                 if (e.key !== "Enter") return;
                 e.preventDefault();
-                const v = (e.target as HTMLInputElement).value.trim();
-                if (v.length >= 3) navigate(`/search?q=${encodeURIComponent(v)}`);
+                const q = searchQuery.trim().toLowerCase();
+                if (q.length < 2) return;
+                setSearching(true);
+                setSearchOpen(true);
+                try {
+                  const [quizRes, classRes] = await Promise.all([
+                    api.quizzes.list().catch(() => ({ data: [] })),
+                    api.classes.list().catch(() => ({ data: [] })),
+                  ]);
+                  const quizzes = (Array.isArray(quizRes.data) ? quizRes.data : []) as any[];
+                  const classes = (Array.isArray(classRes.data) ? classRes.data : []) as any[];
+                  const hits: Array<{ label: string; detail: string; path: string }> = [];
+                  quizzes.forEach((quiz) => {
+                    const title = String(quiz.title || "");
+                    if (title.toLowerCase().includes(q)) {
+                      hits.push({
+                        label: title,
+                        detail: "Quiz",
+                        path: role === "admin" ? `/admin/quiz/${quiz.id}/submissions` : role === "student" ? `/student/quiz/${quiz.id}/lobby` : `/teacher/quiz-builder?id=${quiz.id}`,
+                      });
+                    }
+                  });
+                  classes.forEach((cls) => {
+                    const name = String(cls.name || "");
+                    if (name.toLowerCase().includes(q)) {
+                      hits.push({
+                        label: name,
+                        detail: "Class",
+                        path: role === "student" ? `/student/classes/${cls.id}` : `/teacher/class/${cls.id}`,
+                      });
+                    }
+                  });
+                  setSearchHits(hits.slice(0, 8));
+                } finally {
+                  setSearching(false);
+                }
               }}
             />
+            {searchOpen && (
+              <div className="absolute right-0 top-11 w-72 bg-white border border-[#E2E8F0] rounded-xl shadow-lg z-50 p-2">
+                {searching ? (
+                  <p className="text-sm text-[#64748B] px-3 py-4">Searching…</p>
+                ) : searchHits.length === 0 ? (
+                  <p className="text-sm text-[#64748B] px-3 py-4">No results found</p>
+                ) : (
+                  searchHits.map((hit) => (
+                    <button
+                      key={`${hit.detail}-${hit.path}`}
+                      type="button"
+                      onClick={() => {
+                        setSearchOpen(false);
+                        navigate(hit.path);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#F4F5F9]"
+                    >
+                      <p className="text-sm font-medium text-[#0F0E47] truncate">{hit.label}</p>
+                      <p className="text-xs text-[#8686AC]">{hit.detail}</p>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           {/* Dark mode toggle */}
           <button
             className="p-2 rounded-xl hover:bg-[#EDE9FE] transition-colors text-[#8686AC] hover:text-[#272757]"
-            onClick={() => {}}
-            title="Toggle Dark Mode"
+            onClick={() => {
+              const next = !document.documentElement.classList.contains("dark");
+              document.documentElement.classList.toggle("dark", next);
+              localStorage.setItem("quizmind_theme", next ? "dark" : "light");
+              setDark(next);
+            }}
+            title={dark ? "Switch to light mode" : "Switch to dark mode"}
           >
-            <Moon className="w-5 h-5" style={{ strokeWidth: 1.5 }} />
+            {dark ? <Sun className="w-5 h-5" style={{ strokeWidth: 1.5 }} /> : <Moon className="w-5 h-5" style={{ strokeWidth: 1.5 }} />}
           </button>
 
           {/* Notification bell */}

@@ -21,6 +21,7 @@ export function VerifyEmailPage() {
   const [email, setEmail] = useState("");
   const [resending, setResending] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [fallbackUrl, setFallbackUrl] = useState(() => sessionStorage.getItem("quizmind_verify_url") || "");
 
   useEffect(() => {
     if (!token) {
@@ -60,8 +61,12 @@ export function VerifyEmailPage() {
     setResending(true);
     try {
       const res = await api.auth.resendVerification(email.trim());
+      if (res.verificationUrl) {
+        sessionStorage.setItem("quizmind_verify_url", res.verificationUrl);
+        setFallbackUrl(res.verificationUrl);
+      }
       toast.success(res.message || "Verification email sent successfully!");
-      setMessage("Please check your inbox for the new verification link.");
+      setMessage(res.message || "Please check your inbox for the new verification link.");
     } catch (err: any) {
       toast.error(err.message || "Failed to resend verification email");
     } finally {
@@ -208,12 +213,23 @@ export function VerifyEmailPage() {
           </div>
         )}
 
+        {fallbackUrl && status !== "success" && (
+          <div className="mt-6 rounded-xl bg-[#F4F5F9] p-4 text-left">
+            <p className="text-xs text-[#505081] mb-2">
+              If the email does not arrive, open this verification link:
+            </p>
+            <a href={fallbackUrl} className="text-sm font-medium text-[#272757] break-all underline">
+              {fallbackUrl}
+            </a>
+          </div>
+        )}
+
         <div className="mt-8 text-center">
           <button
             onClick={() => navigate("/login")}
             className="text-[#8686AC] hover:text-[#272757] font-medium transition-colors"
           >
-            ? Back to Login
+            Back to Login
           </button>
         </div>
       </div>

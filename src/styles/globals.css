@@ -200,3 +200,23 @@
 .landing-blob {
   animation: landing-blob 8s ease-in-out infinite;
 }
+
+html.dark body {
+  background: #12141c;
+  color: #e8e8f4;
+}
+html.dark .bg-white { background-color: #1c2030 !important; }
+html.dark .bg-gray-50,
+html.dark .bg-\[\#F8FAFC\],
+html.dark .bg-\[\#F4F5F9\] { background-color: #161a28 !important; }
+html.dark .text-\[\#0F0E47\],
+html.dark .text-gray-800 { color: #f2f2f8 !important; }
+html.dark .text-gray-500,
+html.dark .text-gray-600,
+html.dark .text-\[\#64748B\],
+html.dark .text-\[\#8686AC\] { color: #b7b7cc !important; }
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-\[\#E2E8F0\] { border-color: #2c3148 !important; }
+html.dark header.sticky,
+html.dark aside { background-color: #161a28 !important; }

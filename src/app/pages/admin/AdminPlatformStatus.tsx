@@ -41,13 +41,15 @@ export function AdminPlatformStatus() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [overall, setOverall] = useState<Status>("operational");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (manual = false) => {
+    if (manual) setRefreshing(true);
     try {
       const res = await api.admin.health();
       const d: any = res.data || {};
       setOverall((d.overall as Status) || "operational");
-      setLastChecked(d.checkedAt ? new Date(d.checkedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : getTime());
+      setLastChecked(getTime());
       const checks = Array.isArray(d.services) ? d.services : [];
       setServices(
         checks.map((c: any, i: number) => ({
@@ -71,6 +73,7 @@ export function AdminPlatformStatus() {
       toast.error(err instanceof ApiError ? err.message : "Failed to load health status");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -91,10 +94,13 @@ export function AdminPlatformStatus() {
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-[#64748B]">Last checked: {lastChecked}</p>
         <button
-          onClick={() => load()}
-          className="flex items-center gap-2 px-4 py-2 border border-[#E2E8F0] text-[#272757] rounded-xl text-sm font-semibold hover:bg-[#F8FAFC] transition-colors"
+          type="button"
+          disabled={refreshing}
+          onClick={() => load(true)}
+          className="flex items-center gap-2 px-4 py-2 border border-[#E2E8F0] text-[#272757] rounded-xl text-sm font-semibold hover:bg-[#F8FAFC] transition-colors disabled:opacity-60"
         >
-          Refresh
+          {refreshing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {refreshing ? "Refreshing…" : "Refresh"}
         </button>
       </div>
 

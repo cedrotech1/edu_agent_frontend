@@ -11,6 +11,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api, ApiError, type UserRole } from "@/lib/api";
 import { toast } from "sonner";
+import { passwordError } from "@/lib/password";
 
 export function SignUpPage() {
   const navigate = useNavigate();
@@ -57,8 +58,8 @@ export function SignUpPage() {
     if (!name.trim()) e.name = "Full name is required";
     if (!email.trim()) e.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Enter a valid email address";
-    if (!password) e.password = "Password is required";
-    else if (password.length < 8) e.password = "Password must be at least 8 characters";
+    const passwordIssue = passwordError(password);
+    if (passwordIssue) e.password = passwordIssue;
     if (!schoolIds.length) e.schools = "Select at least one school from the list";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -71,7 +72,7 @@ export function SignUpPage() {
     setFormError("");
     try {
       const primary = schools.find((s) => s.id === schoolIds[0]);
-      await register({
+      const res = await register({
         name: name.trim(),
         email: email.trim(),
         password,
@@ -80,7 +81,12 @@ export function SignUpPage() {
         institution: primary?.name,
         role,
       });
-      toast.success("Registration successful! Please check your email to verify your account.");
+      if (res.verificationUrl) {
+        sessionStorage.setItem("quizmind_verify_url", res.verificationUrl);
+      } else {
+        sessionStorage.removeItem("quizmind_verify_url");
+      }
+      toast.success(res.message || "Registration successful! Please check your email to verify your account.");
       navigate("/verify-email");
     } catch (err) {
       const message =
@@ -102,6 +108,9 @@ export function SignUpPage() {
               <Logo variant="horizontal" size="md" />
             </div>
             <p className="text-[#8686AC] text-base">Create your account to get started</p>
+            <p className="text-sm font-medium text-[#272757] mt-2">
+              You are creating a {role} account
+            </p>
           </div>
 
           <Tabs value={role} onValueChange={(v) => setRole(v as UserRole)} className="mb-7">

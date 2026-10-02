@@ -216,7 +216,7 @@ export function VerifyEmailPage() {
         {fallbackUrl && status !== "success" && (
           <div className="mt-6 rounded-xl bg-[#F4F5F9] p-4 text-left">
             <p className="text-xs text-[#505081] mb-2">
-              If the email does not arrive, open this verification link:
+              If the email does not arrive, open this verification link for testing, or ask an admin to verify you.
             </p>
             <a href={fallbackUrl} className="text-sm font-medium text-[#272757] break-all underline">
               {fallbackUrl}

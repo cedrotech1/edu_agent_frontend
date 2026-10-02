@@ -353,6 +353,9 @@ html.dark .public-icon-well {
   background: rgba(255, 255, 255, 0.06);
   color: #ececf6;
 }
+html.dark .public-chip:hover { background: #2a3148; }
+html.dark .qm-logo-ink { color: #ffffff !important; }
+html.dark .qm-logo-well { background-color: rgba(255, 255, 255, 0.08) !important; }
 html.dark aside {
   background-color: #1c2030 !important;
   border-right: 1px solid #2e3448;

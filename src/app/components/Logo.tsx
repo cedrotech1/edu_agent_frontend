@@ -20,10 +20,10 @@ export function Logo({ variant = "horizontal", size = "md", color = "#272757" }:
   const LogoIcon = () => (
     <div className="relative">
       <div
-        className="rounded-2xl p-2 flex items-center justify-center"
+        className="qm-logo-well rounded-2xl p-2 flex items-center justify-center"
         style={{ backgroundColor: `${color}15` }}
       >
-        <Brain className="w-full h-full" style={{ color }} />
+        <Brain className="qm-logo-ink w-full h-full" style={{ color }} />
       </div>
       <Sparkles
         className="absolute -top-1 -right-1 w-4 h-4"
@@ -47,7 +47,7 @@ export function Logo({ variant = "horizontal", size = "md", color = "#272757" }:
           <LogoIcon />
         </div>
         <div className="text-center">
-          <span className={`${textClass} font-bold`} style={{ color }}>
+          <span className={`${textClass} font-bold qm-logo-ink`} style={{ color }}>
             QuizMind
           </span>
           <span className={`${textClass} font-bold text-gray-700`}> AI</span>
@@ -63,7 +63,7 @@ export function Logo({ variant = "horizontal", size = "md", color = "#272757" }:
         <LogoIcon />
       </div>
       <div>
-        <span className={`${textClass} font-bold`} style={{ color }}>
+        <span className={`${textClass} font-bold qm-logo-ink`} style={{ color }}>
           QuizMind
         </span>
         <span className={`${textClass} font-bold text-gray-700`}> AI</span>

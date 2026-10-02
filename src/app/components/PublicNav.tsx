@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useNavigate } from "react-router";
+import { Moon, Sun } from "lucide-react";
 import { Button } from "./ui/button";
 import { Logo } from "./Logo";
 
 export function PublicNav() {
   const navigate = useNavigate();
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
   const goHome = () => {
     if (window.location.pathname === "/") {
       window.location.assign("/");
@@ -25,6 +28,19 @@ export function PublicNav() {
             <Logo variant="horizontal" size="md" />
           </button>
           <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              className="p-2 rounded-xl text-[#505081] hover:bg-[#272757]/6"
+              title={dark ? "Switch to light mode" : "Switch to dark mode"}
+              onClick={() => {
+                const next = !document.documentElement.classList.contains("dark");
+                document.documentElement.classList.toggle("dark", next);
+                localStorage.setItem("quizmind_theme", next ? "dark" : "light");
+                setDark(next);
+              }}
+            >
+              {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
             <Button
               variant="ghost"
               onClick={goHome}

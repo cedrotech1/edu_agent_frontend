@@ -353,9 +353,22 @@ html.dark .public-icon-well {
   background: rgba(255, 255, 255, 0.06);
   color: #ececf6;
 }
-html.dark aside .bg-white { background-color: #ffffff !important; }
-html.dark aside .text-\[\#2563EB\] { color: #2563EB !important; }
-html.dark aside .text-\[\#8686AC\] { color: #a8a8c4 !important; }
+html.dark aside {
+  background-color: #1c2030 !important;
+  border-right: 1px solid #2e3448;
+}
+html.dark aside [class*="border-[#1A1952]"] {
+  border-color: #2e3448 !important;
+}
+html.dark aside nav [class*="bg-[#272757]"] {
+  background-color: #2e3448 !important;
+}
+html.dark aside nav [class*="hover:bg-[#1A1952]"]:hover {
+  background-color: #2a3148 !important;
+  color: #ffffff !important;
+}
+html.dark aside .bg-white { background-color: #232838 !important; }
+html.dark aside .text-\[\#8686AC\] { color: #c8c8d8 !important; }
 html.dark [class*="text-[#272757]"],
 html.dark [class*="text-[#0F0E47]"],
 html.dark [class*="text-[#1A1952]"],
@@ -384,7 +397,7 @@ html.dark [class*="text-[#991B1B]"] { color: #fca5a5 !important; }
 html.dark [class*="bg-[#FEE2E2]"],
 html.dark [class*="bg-red-100"] { background-color: #3a1d24 !important; }
 html.dark [class*="text-red-600"] { color: #fca5a5 !important; }
-html.dark aside [class*="text-[#2563EB]"] { color: #2563EB !important; }
+html.dark aside [class*="text-[#2563EB]"] { color: #ffffff !important; }
 html.dark [data-sonner-toast] {
   background: #1c2030 !important;
   color: #ececf6 !important;
@@ -401,7 +414,7 @@ html.dark [class*="text-[#3730A3]"] {
   color: #ffffff !important;
 }
 html.dark aside [class*="text-[#2563EB]"] {
-  color: #2563EB !important;
+  color: #ffffff !important;
 }
 html.dark [class*="bg-[#EDE9FE]"],
 html.dark [class*="bg-[#272757]/10"],

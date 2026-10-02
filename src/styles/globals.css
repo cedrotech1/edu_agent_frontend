@@ -201,22 +201,148 @@
   animation: landing-blob 8s ease-in-out infinite;
 }
 
+/* Dark mode: light surfaces and navy text become charcoal + off-white.
+   Solid navy buttons (bg #272757 + white text) stay as buttons. */
+html.dark {
+  color-scheme: dark;
+}
 html.dark body {
   background: #12141c;
-  color: #e8e8f4;
+  color: #ececf6;
 }
-html.dark .bg-white { background-color: #1c2030 !important; }
+html.dark .bg-white,
 html.dark .bg-gray-50,
+html.dark .bg-gray-100,
 html.dark .bg-\[\#F8FAFC\],
-html.dark .bg-\[\#F4F5F9\] { background-color: #161a28 !important; }
+html.dark .bg-\[\#F4F5F9\],
+html.dark .bg-\[\#F1F5F9\],
+html.dark .bg-\[\#F1F2F7\],
+html.dark .hover\:bg-white:hover,
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-100:hover,
+html.dark .hover\:bg-\[\#F8FAFC\]:hover,
+html.dark .hover\:bg-\[\#F4F5F9\]:hover,
+html.dark .hover\:bg-\[\#F1F5F9\]:hover {
+  background-color: #1c2030 !important;
+}
+html.dark .bg-\[\#EDE9FE\],
+html.dark .bg-\[\#EDE9FE\]\/50,
+html.dark .bg-\[\#272757\]\/10,
+html.dark .bg-\[\#272757\]\/6,
+html.dark .hover\:bg-\[\#EDE9FE\]:hover,
+html.dark .hover\:bg-\[\#272757\]\/10:hover,
+html.dark .hover\:bg-\[\#272757\]\/6:hover {
+  background-color: #2a3148 !important;
+}
 html.dark .text-\[\#0F0E47\],
-html.dark .text-gray-800 { color: #f2f2f8 !important; }
+html.dark .text-\[\#272757\],
+html.dark .text-\[\#1A1952\],
+html.dark .text-\[\#2563EB\],
+html.dark .text-\[\#505081\],
+html.dark .text-gray-700,
+html.dark .text-gray-800,
+html.dark .text-gray-900,
+html.dark .text-black,
+html.dark .hover\:text-\[\#272757\]:hover,
+html.dark .hover\:text-\[\#0F0E47\]:hover {
+  color: #ececf6 !important;
+}
+html.dark .text-gray-400,
 html.dark .text-gray-500,
 html.dark .text-gray-600,
 html.dark .text-\[\#64748B\],
-html.dark .text-\[\#8686AC\] { color: #b7b7cc !important; }
+html.dark .text-\[\#8686AC\],
+html.dark .text-\[\#94A3B8\] {
+  color: #b7b7c9 !important;
+}
 html.dark .border-gray-100,
 html.dark .border-gray-200,
-html.dark .border-\[\#E2E8F0\] { border-color: #2c3148 !important; }
-html.dark header.sticky,
-html.dark aside { background-color: #161a28 !important; }
+html.dark .border-\[\#E2E8F0\],
+html.dark .border-\[\#F1F5F9\],
+html.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-\[\#E2E8F0\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #2e3448 !important;
+}
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: #1c2030;
+  color: #ececf6;
+  border-color: #2e3448;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #8e8ea3;
+}
+html.dark header.sticky {
+  background-color: #161a26 !important;
+  border-color: #2e3448 !important;
+}
+html.dark .bg-gradient-to-b {
+  background-image: none !important;
+  background-color: #1c2030 !important;
+}
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-50\/70 { background-color: #12352c !important; }
+html.dark .bg-red-50,
+html.dark .hover\:bg-red-50:hover { background-color: #3a1d24 !important; }
+html.dark .bg-amber-50,
+html.dark .bg-\[\#FEF3C7\] { background-color: #3a3018 !important; }
+html.dark .bg-\[\#D1FAE5\] { background-color: #12352c !important; }
+html.dark .bg-\[\#FEE2E2\] { background-color: #3a1d24 !important; }
+html.dark .text-emerald-600,
+html.dark .text-emerald-700,
+html.dark .text-emerald-800,
+html.dark .text-\[\#065F46\],
+html.dark .text-\[\#059669\] { color: #6ee7b7 !important; }
+html.dark .text-red-500,
+html.dark .text-red-600,
+html.dark .text-\[\#991B1B\],
+html.dark .text-\[\#B91C1C\] { color: #fca5a5 !important; }
+html.dark .text-amber-600,
+html.dark .text-amber-700,
+html.dark .text-\[\#92400E\],
+html.dark .text-\[\#B45309\] { color: #fcd34d !important; }
+html.dark .qm-input,
+html.dark .qm-modal {
+  background: #1c2030;
+  color: #ececf6;
+  border-color: #2e3448;
+}
+html.dark .qm-section-heading { color: #ececf6; }
+html.dark .qm-btn-ghost { color: #ececf6; border-color: #8d8eb8; }
+html.dark .qm-table th { background: #232838; color: #b7b7c9; border-color: #2e3448; }
+html.dark .qm-table td { color: #ececf6; border-color: #2e3448; }
+html.dark .qm-table tbody tr:nth-child(odd) { background: #1c2030; }
+html.dark .qm-table tbody tr:nth-child(even) { background: #181c28; }
+html.dark .qm-table tbody tr:hover,
+html.dark .qm-hover:hover { background: #2a3148 !important; }
+html.dark .qm-badge-draft,
+html.dark .qm-badge-scheduled,
+html.dark .qm-badge-info { background: #2a3148; color: #ececf6; }
+html.dark .public-page {
+  background: #12141c;
+  color: #ececf6;
+}
+html.dark .public-nav { background: rgba(18, 20, 28, 0.94); }
+html.dark .public-surface,
+html.dark .public-surface-soft,
+html.dark .public-chip { background: #1c2030; }
+html.dark .public-input {
+  background: #232838 !important;
+  color: #ececf6;
+}
+html.dark .public-btn-ghost,
+html.dark .public-icon-well {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ececf6;
+}
+html.dark aside .bg-white { background-color: #ffffff !important; }
+html.dark aside .text-\[\#2563EB\] { color: #2563EB !important; }
+html.dark aside .text-\[\#8686AC\] { color: #a8a8c4 !important; }
+html.dark [data-sonner-toast] {
+  background: #1c2030 !important;
+  color: #ececf6 !important;
+  border-color: #2e3448 !important;
+}

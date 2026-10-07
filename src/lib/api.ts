@@ -515,6 +515,28 @@ export const api = {
       return apiRequest<DataResponse>(`/admin/analytics${q}`);
     },
     health: () => apiRequest<DataResponse>("/admin/health"),
+    exportDatabase: async () => {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/admin/database/export`, {
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        let message = "Export failed";
+        try {
+          message = JSON.parse(text)?.message || message;
+        } catch {
+          if (text) message = text;
+        }
+        throw new ApiError(message, res.status);
+      }
+      const blob = await res.blob();
+      const match = (res.headers.get("Content-Disposition") || "").match(/filename="([^"]+)"/);
+      return { blob, filename: match?.[1] || "quizmind-database.json" };
+    },
     quizzes: () => apiRequest<DataResponse>("/admin/quizzes"),
     flagQuiz: (id: string | number, flagged: boolean) =>
       apiRequest<DataResponse>(`/admin/quizzes/${id}/flag`, {

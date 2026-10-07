@@ -5,7 +5,7 @@ import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Switch } from "../../components/ui/switch";
-import { ArrowLeft, Settings, Sparkles, Bell, Sliders } from "lucide-react";
+import { ArrowLeft, Settings, Sparkles, Bell, Sliders, Database, Download } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/AppShell";
 import { api, ApiError } from "@/lib/api";
@@ -21,6 +21,7 @@ export function AdminPlatformSettings() {
   const [emailFlagged, setEmailFlagged] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -56,6 +57,26 @@ export function AdminPlatformSettings() {
       toast.error(err instanceof ApiError ? err.message : "Failed to save settings");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const exportDatabase = async () => {
+    setExporting(true);
+    try {
+      const { blob, filename } = await api.admin.exportDatabase();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Database exported as SQL.");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not export database");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -162,6 +183,25 @@ export function AdminPlatformSettings() {
               </div>
             ))}
           </div>
+        </Card>
+
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-start gap-3 mb-4">
+            <Database className="w-5 h-5 text-[#272757] mt-0.5" />
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">Database export</h2>
+              <p className="text-sm text-gray-500">Download the database as it is, in one .sql file.</p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            onClick={exportDatabase}
+            disabled={exporting}
+            className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {exporting ? "Exporting..." : "Export database (.sql)"}
+          </Button>
         </Card>
 
         <Button

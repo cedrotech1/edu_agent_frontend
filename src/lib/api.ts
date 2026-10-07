@@ -519,7 +519,7 @@ export const api = {
       const token = getToken();
       const res = await fetch(`${API_BASE}/admin/database/export`, {
         headers: {
-          Accept: "application/json",
+          Accept: "application/sql, text/plain",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
@@ -535,7 +535,10 @@ export const api = {
       }
       const blob = await res.blob();
       const match = (res.headers.get("Content-Disposition") || "").match(/filename="([^"]+)"/);
-      return { blob, filename: match?.[1] || "quizmind-database.json" };
+      return {
+        blob,
+        filename: match?.[1] || `quizmind-database-${new Date().toISOString().slice(0, 10)}.sql`,
+      };
     },
     quizzes: () => apiRequest<DataResponse>("/admin/quizzes"),
     flagQuiz: (id: string | number, flagged: boolean) =>

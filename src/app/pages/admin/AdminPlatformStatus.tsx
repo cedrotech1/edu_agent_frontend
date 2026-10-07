@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Bot, Database, Mail, HardDrive, Shield, Activity, CheckCircle2, AlertTriangle, Loader2, Download } from "lucide-react";
+import { Bot, Database, Mail, HardDrive, Shield, Activity, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { AppShell } from "../../components/AppShell";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "sonner";
@@ -42,7 +42,6 @@ export function AdminPlatformStatus() {
   const [overall, setOverall] = useState<Status>("operational");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async (manual = false) => {
     if (manual) setRefreshing(true);
@@ -87,28 +86,6 @@ export function AdminPlatformStatus() {
     return () => clearInterval(interval);
   }, [load]);
 
-  const handleExportDatabase = async () => {
-    setExporting(true);
-    try {
-      const { blob, filename } = await api.admin.exportDatabase();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      toast.success("Database downloaded", {
-        description: "The file contains every table as it is stored.",
-      });
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to export the database");
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const degraded = services.filter(s => s.status !== "operational").length;
   const anyDown = overall === "down" || services.some(s => s.status === "down");
 
@@ -116,26 +93,15 @@ export function AdminPlatformStatus() {
     <AppShell role="admin" pageTitle="Platform Status">
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-[#64748B]">Last checked: {lastChecked}</p>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={exporting}
-            onClick={handleExportDatabase}
-            className="flex items-center gap-2 px-4 py-2 bg-[#272757] text-white rounded-xl text-sm font-semibold hover:bg-[#1A1952] transition-colors disabled:opacity-60"
-          >
-            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            {exporting ? "Exporting…" : "Export database"}
-          </button>
-          <button
-            type="button"
-            disabled={refreshing}
-            onClick={() => load(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-[#E2E8F0] text-[#272757] rounded-xl text-sm font-semibold hover:bg-[#F8FAFC] transition-colors disabled:opacity-60"
-          >
-            {refreshing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {refreshing ? "Refreshing…" : "Refresh"}
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={refreshing}
+          onClick={() => load(true)}
+          className="flex items-center gap-2 px-4 py-2 border border-[#E2E8F0] text-[#272757] rounded-xl text-sm font-semibold hover:bg-[#F8FAFC] transition-colors disabled:opacity-60"
+        >
+          {refreshing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {refreshing ? "Refreshing…" : "Refresh"}
+        </button>
       </div>
 
       {loading ? (

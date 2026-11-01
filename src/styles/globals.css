@@ -1,5 +1,16 @@
 /* QuizMind AI — Global Styles (Blue Eclipse) */
 
+/* Dashboard main: flat white cards (no border / shadow) */
+.qm-main [data-slot="card"],
+.qm-main .bg-white.rounded-xl,
+.qm-main .bg-white.rounded-2xl,
+.qm-main .bg-white.rounded-lg,
+.qm-main .bg-card.rounded-xl {
+  border-width: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
 .qm-input {
   height: 44px; padding: 0 14px; border-radius: 10px;
   border: 1px solid #E2E8F0; font-size: 14px; line-height: 1.5;

@@ -136,7 +136,7 @@ export function DashboardLayout({
   })();
 
   return (
-    <div className="relative min-h-screen bg-[#F8FAFC]">
+    <div className="relative min-h-screen bg-gray-100">
       {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 bg-[#0F0E47]/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
@@ -434,7 +434,7 @@ export function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-6">
+        <main className="qm-main flex-1 p-6 bg-gray-100">
           {children}
         </main>
       </div>

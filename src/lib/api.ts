@@ -446,6 +446,14 @@ export const api = {
       apiRequest<DataResponse>(`/quizzes/student/${id}/results`),
     submissionDetail: (submissionId: string | number) =>
       apiRequest<DataResponse>(`/quizzes/submissions/${submissionId}`),
+    updateRecommendation: (
+      submissionId: string | number,
+      recommendation: string
+    ) =>
+      apiRequest<DataResponse>(`/quizzes/submissions/${submissionId}/recommendation`, {
+        method: "PATCH",
+        body: { recommendation },
+      }),
   },
 
   users: {
@@ -585,6 +593,28 @@ export const api = {
       send: (id: string | number) =>
         apiRequest<DataResponse>(`/admin/announcements/${id}/send`, { method: "POST" }),
     },
+    feedback: {
+      list: (params?: { status?: string; rating?: string; search?: string }) => {
+        const sp = new URLSearchParams();
+        if (params?.status) sp.set("status", params.status);
+        if (params?.rating) sp.set("rating", params.rating);
+        if (params?.search) sp.set("search", params.search);
+        const q = sp.toString() ? `?${sp}` : "";
+        return apiRequest<DataResponse>(`/admin/feedback${q}`);
+      },
+      stats: () => apiRequest<DataResponse>("/admin/feedback/stats"),
+      updateStatus: (id: string | number, status: "new" | "reviewed") =>
+        apiRequest<DataResponse>(`/admin/feedback/${id}`, {
+          method: "PATCH",
+          body: { status },
+        }),
+    },
+  },
+
+  feedback: {
+    create: (body: { rating: number; message: string; category?: string }) =>
+      apiRequest<DataResponse>("/feedback", { method: "POST", body }),
+    mine: () => apiRequest<DataResponse>("/feedback/mine"),
   },
 
   messages: {

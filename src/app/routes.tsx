@@ -61,6 +61,7 @@ import { NotFound } from "./pages/NotFound";
 import { SessionExpired } from "./pages/SessionExpired";
 import { TwoFactorLogin } from "./pages/auth/TwoFactorLogin";
 import { AdminPlatformStatus } from "./pages/admin/AdminPlatformStatus";
+import { AdminFeedback } from "./pages/admin/AdminFeedback";
 import { PublicQuizTaking } from "./pages/quiz/PublicQuizTaking";
 import { PublicQuizThankYou } from "./pages/quiz/PublicQuizThankYou";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -136,6 +137,7 @@ export const router = createBrowserRouter([
   { path: "/admin/platform-editor", element: <Navigate to="/admin/platform-settings" replace /> },
   { path: "/admin/announcements", Component: protect(AdminAnnouncements, "admin") },
   { path: "/admin/activity-log", Component: protect(AdminActivityLog, "admin") },
+  { path: "/admin/feedback", Component: protect(AdminFeedback, "admin") },
   { path: "/admin/quiz/:quizId/submissions", Component: protect(AdminQuizSubmissions, "admin") },
   {
     path: "/admin/quiz/:quizId/submissions/:submissionId",

@@ -8,6 +8,7 @@ import {
   Award,
   Loader2,
   Flag,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/AppShell";
@@ -21,6 +22,10 @@ export function SubmissionDetailPage({ role }: { role: UserRole }) {
   const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [recommendation, setRecommendation] = useState("");
+  const [savingRec, setSavingRec] = useState(false);
+
+  const canEditRecommendation = role === "teacher" || role === "admin";
 
   const backPath =
     role === "admin"
@@ -39,7 +44,9 @@ export function SubmissionDetailPage({ role }: { role: UserRole }) {
       setLoading(true);
       try {
         const res = await api.quizzes.submissionDetail(submissionId);
-        setData(res.data || null);
+        const detail = res.data || null;
+        setData(detail);
+        setRecommendation(String(detail?.recommendation || detail?.aiRecommendation || ""));
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : "Failed to load submission");
         setData(null);
@@ -48,6 +55,24 @@ export function SubmissionDetailPage({ role }: { role: UserRole }) {
       }
     })();
   }, [submissionId]);
+
+  const saveRecommendation = async () => {
+    if (!submissionId) return;
+    setSavingRec(true);
+    try {
+      const res = await api.quizzes.updateRecommendation(submissionId, recommendation.trim());
+      const detail = res.data || null;
+      if (detail) {
+        setData(detail);
+        setRecommendation(String(detail.recommendation || detail.aiRecommendation || ""));
+      }
+      toast.success("Recommendation updated");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not update recommendation");
+    } finally {
+      setSavingRec(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -126,6 +151,44 @@ export function SubmissionDetailPage({ role }: { role: UserRole }) {
           )}
         </Card>
       </div>
+
+      <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-6">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-9 h-9 rounded-xl bg-[#EDE9FE] flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4 text-[#272757]" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[#0F0E47]">Study recommendation</h2>
+            <p className="text-xs text-gray-500">
+              {canEditRecommendation
+                ? "AI draft is saved with the result. Edit it before the student relies on it."
+                : "Saved with your graded result."}
+            </p>
+          </div>
+        </div>
+        {canEditRecommendation ? (
+          <div className="space-y-3">
+            <textarea
+              value={recommendation}
+              onChange={(e) => setRecommendation(e.target.value)}
+              rows={6}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-[#0F0E47] resize-y min-h-[120px] focus:outline-none focus:border-[#272757]"
+            />
+            <Button
+              type="button"
+              disabled={savingRec}
+              onClick={saveRecommendation}
+              className="bg-[#272757] hover:bg-[#505081] text-white rounded-xl"
+            >
+              {savingRec ? "Saving…" : "Save recommendation"}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+            {recommendation || "No recommendation yet."}
+          </p>
+        )}
+      </Card>
 
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-[#0F0E47]">Answers</h2>

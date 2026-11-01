@@ -34,6 +34,17 @@ export function QuizResults() {
   const [flaggedCount, setFlaggedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [accessError, setAccessError] = useState<string | null>(null);
+  const [advanced, setAdvanced] = useState({
+    medianScore: 0,
+    minScore: 0,
+    maxScore: 0,
+    stdDev: 0,
+    passRate: 0,
+    distinctionRate: 0,
+    averageTime: "—",
+    scoreDistribution: {} as Record<string, number>,
+    hardestQuestions: [] as any[],
+  });
 
   useEffect(() => {
     if (!quizId) return;
@@ -102,6 +113,17 @@ export function QuizResults() {
             : [];
         setMockQuestionStats(stats);
         setFlaggedCount(d.flaggedCount ?? d.needsReview ?? 0);
+        setAdvanced({
+          medianScore: Number(d.medianScore ?? 0),
+          minScore: Number(d.minScore ?? 0),
+          maxScore: Number(d.maxScore ?? 0),
+          stdDev: Number(d.stdDev ?? 0),
+          passRate: Number(d.passRate ?? 0),
+          distinctionRate: Number(d.distinctionRate ?? 0),
+          averageTime: d.averageTime || "—",
+          scoreDistribution: d.scoreDistribution || {},
+          hardestQuestions: Array.isArray(d.hardestQuestions) ? d.hardestQuestions : [],
+        });
       } catch (err) {
         const message =
           err instanceof ApiError ? err.message : "Failed to load results";
@@ -125,11 +147,17 @@ export function QuizResults() {
     ? Math.round(mockStudents.reduce((sum, s) => sum + s.score, 0) / mockStudents.length)
     : 0;
 
-  const passRate = mockStudents.length
-    ? Math.round(
-        (mockStudents.filter((s) => s.status === "pass").length / mockStudents.length) * 100
-      )
-    : 0;
+  const passRate =
+    advanced.passRate ||
+    (mockStudents.length
+      ? Math.round(
+          (mockStudents.filter((s) => s.status === "pass").length / mockStudents.length) * 100
+        )
+      : 0);
+
+  const distributionData = Object.entries(advanced.scoreDistribution || {}).map(
+    ([band, count]) => ({ band, count: Number(count) || 0 })
+  );
 
   const handleExportResults = async () => {
     if (!quizId) return;
@@ -169,12 +197,44 @@ export function QuizResults() {
       valueColor: "text-[#272757]",
     },
     {
+      label: "Median Score",
+      value: `${advanced.medianScore || averageScore}%`,
+      icon: Percent,
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-600",
+      valueColor: "text-emerald-700",
+    },
+    {
       label: "Pass Rate",
       value: `${passRate}%`,
       icon: Percent,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-600",
       valueColor: "text-emerald-700",
+    },
+    {
+      label: "Distinction (≥80%)",
+      value: `${advanced.distinctionRate || 0}%`,
+      icon: Sparkles,
+      iconBg: "bg-[#EDE9FE]",
+      iconColor: "text-[#272757]",
+      valueColor: "text-[#272757]",
+    },
+    {
+      label: "Score range",
+      value: mockStudents.length ? `${advanced.minScore}-${advanced.maxScore}%` : "—",
+      icon: TrendingUp,
+      iconBg: "bg-gray-50",
+      iconColor: "text-[#272757]",
+      valueColor: "text-[#0F0E47]",
+    },
+    {
+      label: "Avg time",
+      value: advanced.averageTime || "—",
+      icon: Users,
+      iconBg: "bg-gray-50",
+      iconColor: "text-[#272757]",
+      valueColor: "text-[#0F0E47]",
     },
     {
       label: "Needs Review",
@@ -270,10 +330,57 @@ export function QuizResults() {
                 <Icon className={`w-4 h-4 ${iconColor}`} strokeWidth={1.75} />
               </div>
             </div>
-            <p className={`text-3xl font-semibold tracking-tight ${valueColor}`}>{value}</p>
+            <p className={`text-2xl font-semibold tracking-tight ${valueColor}`}>{value}</p>
           </Card>
         ))}
       </div>
+
+      {(distributionData.length > 0 || advanced.hardestQuestions.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h2 className="text-sm font-semibold text-[#0F0E47]">Score distribution</h2>
+            </div>
+            <div className="p-5 h-64">
+              {distributionData.length === 0 ? (
+                <p className="text-sm text-gray-400">No scores yet</p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={distributionData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                    <XAxis dataKey="band" tick={{ fontSize: 11 }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#272757" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </Card>
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h2 className="text-sm font-semibold text-[#0F0E47]">Hardest questions</h2>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {advanced.hardestQuestions.length === 0 ? (
+                <p className="p-5 text-sm text-gray-400">No question stats yet</p>
+              ) : (
+                advanced.hardestQuestions.map((q) => (
+                  <div key={q.question} className="px-5 py-3.5">
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <p className="text-sm font-semibold text-[#0F0E47]">{q.question}</p>
+                      <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                        {q.successRate}% correct
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 line-clamp-2">{q.questionText}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Student Results */}

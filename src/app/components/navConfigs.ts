@@ -17,6 +17,7 @@ import {
   Megaphone,
   List,
   Signal,
+  MessageSquareHeart,
 } from "lucide-react";
 import type { NavItem } from "./DashboardLayout";
 
@@ -55,6 +56,7 @@ export const adminNavItems: NavItem[] = [
   { icon: BarChart2, label: "Analytics", path: "/admin/analytics" },
   { icon: Megaphone, label: "Announcements", path: "/admin/announcements" },
   { icon: List, label: "Activity Log", path: "/admin/activity-log" },
+  { icon: MessageSquareHeart, label: "Feedback", path: "/admin/feedback" },
   { icon: Signal, label: "Platform Status", path: "/admin/platform-status" },
   { icon: Bell, label: "Notifications", path: "/admin/notifications" },
   { icon: HelpCircle, label: "Help", path: "/admin/help" },

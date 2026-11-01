@@ -19,6 +19,7 @@ import { useAuth } from "@/lib/auth";
 import { AppShell } from "../../components/AppShell";
 import { PasswordField } from "../../components/PasswordField";
 import { EmailPasswordReset } from "../../components/EmailPasswordReset";
+import { FeedbackForm } from "../../components/FeedbackForm";
 import { passwordError } from "@/lib/password";
 
 function pickProfile(user: Record<string, unknown> | null | undefined) {
@@ -275,6 +276,8 @@ export function TeacherSettings() {
             </Button>
           </div>
         </Card>
+
+        <FeedbackForm />
 
         {/* Security */}
         <Card className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">

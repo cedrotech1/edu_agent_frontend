@@ -40,6 +40,11 @@ export function StudentResults() {
               : "—"),
           classRank: d.classRank || "—",
           classAverage: d.classAverage ?? d.classAvg ?? 0,
+          classMedian: d.classMedian ?? null,
+          classPassRate: d.classPassRate ?? null,
+          percentile: d.percentile ?? null,
+          recommendation: d.recommendation || d.aiRecommendation || "",
+          recommendationEditedAt: d.recommendationEditedAt || null,
           questions: answerRows.map((q: any, index: number) => {
             const question = q.question?.question || q.question || q.questionText || `Question ${index + 1}`;
             const yourAnswer =
@@ -164,6 +169,52 @@ export function StudentResults() {
           </div>
         </div>
       </Card>
+
+      {mockResults.recommendation ? (
+        <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-8">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-[#EDE9FE] rounded-xl flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-[#272757]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-[#0F0E47] mb-1">
+                Study recommendation
+              </h2>
+              <p className="text-xs text-gray-500 mb-3">
+                {mockResults.recommendationEditedAt
+                  ? "Updated by your teacher after reviewing your quiz."
+                  : "Generated from your graded quiz result."}
+              </p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                {mockResults.recommendation}
+              </p>
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
+      {(mockResults.classMedian != null || mockResults.classPassRate != null || mockResults.percentile != null) && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          {mockResults.percentile != null && (
+            <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+              <p className="text-xs text-gray-500 mb-1">Percentile</p>
+              <p className="text-xl font-semibold text-[#0F0E47]">{mockResults.percentile}th</p>
+            </Card>
+          )}
+          {mockResults.classMedian != null && (
+            <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+              <p className="text-xs text-gray-500 mb-1">Class median</p>
+              <p className="text-xl font-semibold text-[#0F0E47]">{mockResults.classMedian}%</p>
+            </Card>
+          )}
+          {mockResults.classPassRate != null && (
+            <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+              <p className="text-xs text-gray-500 mb-1">Class pass rate</p>
+              <p className="text-xl font-semibold text-[#0F0E47]">{mockResults.classPassRate}%</p>
+            </Card>
+          )}
+        </div>
+      )}
 
       <div>
         <h2 className="text-sm font-semibold text-[#0F0E47] mb-4">

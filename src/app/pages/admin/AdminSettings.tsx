@@ -17,6 +17,7 @@ import { api, ApiError, initials } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { PasswordField } from "../../components/PasswordField";
 import { EmailPasswordReset } from "../../components/EmailPasswordReset";
+import { FeedbackForm } from "../../components/FeedbackForm";
 
 export function AdminSettings() {
   const navigate = useNavigate();
@@ -153,6 +154,10 @@ export function AdminSettings() {
             </Button>
           </div>
         </Card>
+
+        <div className="mb-6">
+          <FeedbackForm />
+        </div>
 
         {/* Security Section */}
         <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">

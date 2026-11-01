@@ -1,12 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "../../components/AppShell";
-import { Download, Loader2 } from "lucide-react";
+import { Activity, Download, Loader2, Sparkles, Flag } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 
 interface ActivityRow {
   id: string;
   ts: string;
+  at: Date | null;
   type: string;
   message: string;
   result: string;
@@ -18,6 +32,7 @@ const TYPE_BADGE: Record<string, string> = {
   default: "bg-[#FEF3C7] text-[#92400E]",
 };
 
+const PIE_COLORS = ["#272757", "#505081", "#8686AC", "#10B981", "#F59E0B"];
 const ITEMS_PER_PAGE = 20;
 
 function formatTs(value?: string | Date | null) {
@@ -39,7 +54,6 @@ export function AdminActivityLog() {
   const [page, setPage] = useState(1);
   const [logs, setLogs] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [appliedType, setAppliedType] = useState("All");
   const [appliedSearch, setAppliedSearch] = useState("");
 
@@ -50,13 +64,17 @@ export function AdminActivityLog() {
         const res = await api.admin.activity();
         const rows = (res.data as any[]) || [];
         setLogs(
-          (Array.isArray(rows) ? rows : []).map((r: any, i: number) => ({
-            id: `${r.type || "event"}-${r.meta?.quizId || r.meta?.submissionId || i}-${r.at || i}`,
-            ts: formatTs(r.at),
-            type: r.type || "event",
-            message: r.message || "Activity",
-            result: "Success",
-          })),
+          (Array.isArray(rows) ? rows : []).map((r: any, i: number) => {
+            const at = r.at ? new Date(r.at) : null;
+            return {
+              id: `${r.type || "event"}-${r.meta?.quizId || r.meta?.submissionId || i}-${r.at || i}`,
+              ts: formatTs(r.at),
+              at: at && !Number.isNaN(at.getTime()) ? at : null,
+              type: r.type || "event",
+              message: r.message || "Activity",
+              result: "Success",
+            };
+          })
         );
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : "Failed to load activity");
@@ -79,15 +97,101 @@ export function AdminActivityLog() {
     return true;
   });
 
+  const insights = useMemo(() => {
+    const byType: Record<string, number> = {};
+    const byDay: Record<string, number> = {};
+    let flagged = 0;
+    for (const log of logs) {
+      byType[log.type] = (byType[log.type] || 0) + 1;
+      if (/flag/i.test(log.message) || log.type === "flag") flagged += 1;
+      if (log.at) {
+        const key = log.at.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        byDay[key] = (byDay[key] || 0) + 1;
+      }
+    }
+    const typeData = Object.entries(byType).map(([name, value]) => ({ name, value }));
+    const dayData = Object.entries(byDay)
+      .map(([day, count]) => ({ day, count }))
+      .slice(-14);
+    const topType = typeData.sort((a, b) => b.value - a.value)[0];
+    const todayKey = new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const todayCount = byDay[todayKey] || 0;
+    return {
+      total: logs.length,
+      types: Object.keys(byType).length,
+      flagged,
+      todayCount,
+      typeData,
+      dayData,
+      insight: topType
+        ? `${topType.name} events lead the log (${topType.value}). ${todayCount} events recorded today.`
+        : "No activity recorded yet.",
+    };
+  }, [logs]);
+
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ITEMS_PER_PAGE));
   const start = filteredLogs.length ? (page - 1) * ITEMS_PER_PAGE + 1 : 0;
   const end = Math.min(page * ITEMS_PER_PAGE, filteredLogs.length);
   const paginatedLogs = filteredLogs.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const inputCls =
+    "h-9 border border-[#E2E8F0] rounded-lg px-2 text-sm focus:outline-none focus:border-[#272757] bg-white text-[#0F0E47]";
 
-  const inputCls = "h-9 border border-[#E2E8F0] rounded-lg px-2 text-sm focus:outline-none focus:border-[#272757] bg-white text-[#0F0E47]";
+  const cards = [
+    { label: "Total events", value: String(insights.total), icon: Activity },
+    { label: "Event types", value: String(insights.types), icon: Sparkles },
+    { label: "Today", value: String(insights.todayCount), icon: Activity },
+    { label: "Flag-related", value: String(insights.flagged), icon: Flag },
+  ];
 
   return (
     <AppShell role="admin" pageTitle="Activity Log">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        {cards.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="bg-white border border-[#E2E8F0] rounded-xl p-4 shadow-sm">
+            <div className="w-9 h-9 bg-[#EDE9FE] rounded-xl flex items-center justify-center mb-2">
+              <Icon className="w-4 h-4 text-[#272757]" />
+            </div>
+            <p className="text-xs text-[#64748B] mb-1">{label}</p>
+            <p className="text-2xl font-bold text-[#0F0E47]">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-[#EDE9FE]/50 border border-[#E2E8F0] rounded-xl px-4 py-3 mb-5 text-sm text-[#272757]">
+        <span className="font-semibold">Insight:</span> {insights.insight}
+      </div>
+
+      {!loading && insights.total > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm">
+            <p className="text-sm font-semibold text-[#0F0E47] mb-4">Events by type</p>
+            <div className="flex justify-center">
+              <PieChart width={320} height={220}>
+                <Pie data={insights.typeData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85}>
+                  {insights.typeData.map((entry, i) => (
+                    <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Legend />
+                <Tooltip />
+              </PieChart>
+            </div>
+          </div>
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm">
+            <p className="text-sm font-semibold text-[#0F0E47] mb-4">Daily activity</p>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={insights.dayData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="count" fill="#272757" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 mb-5">
         <div className="flex flex-wrap gap-3 items-end">
           <div>

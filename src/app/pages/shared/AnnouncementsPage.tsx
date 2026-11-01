@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Megaphone, Send, Loader2, Search, X } from "lucide-react";
+import { Megaphone, Send, Loader2, Search, X, Users, School, Sparkles } from "lucide-react";
+import {
+  PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+} from "recharts";
 import { toast } from "sonner";
 import { AppShell } from "../../components/AppShell";
 import { Card } from "../../components/ui/card";
@@ -7,6 +11,8 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { api, ApiError, type UserRole } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+
+const PIE_COLORS = ["#272757", "#505081", "#8686AC", "#10B981", "#F59E0B", "#EF4444"];
 
 type Audience = "all" | "teachers" | "students" | "admins" | "class" | "school" | "users";
 
@@ -140,6 +146,50 @@ export function AnnouncementsPage({ role }: { role: UserRole }) {
     ] as const;
   }, [role]);
 
+  const stats = useMemo(() => {
+    const sent = items.filter((a) => /sent|delivered|published/i.test(a.status) || a.sentAt).length;
+    const audienceMap: Record<string, number> = {};
+    const dayMap: Record<string, number> = {};
+    for (const a of items) {
+      const key = (a.recipients || "Other").split("·")[0].trim() || "Other";
+      audienceMap[key] = (audienceMap[key] || 0) + 1;
+      const when = a.sentAt || a.createdAt;
+      if (when) {
+        const d = new Date(when);
+        if (!Number.isNaN(d.getTime())) {
+          const day = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+          dayMap[day] = (dayMap[day] || 0) + 1;
+        }
+      }
+    }
+    const audienceData = Object.entries(audienceMap)
+      .map(([name, value]) => ({ name: name.length > 22 ? `${name.slice(0, 20)}…` : name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+    const dayData = Object.entries(dayMap)
+      .map(([day, count]) => ({ day, count }))
+      .slice(-10);
+    const uniqueAudiences = Object.keys(audienceMap).length;
+    const last7 = items.filter((a) => {
+      const when = a.sentAt || a.createdAt;
+      if (!when) return false;
+      const d = new Date(when);
+      return !Number.isNaN(d.getTime()) && Date.now() - d.getTime() < 7 * 24 * 60 * 60 * 1000;
+    }).length;
+    const topAudience = audienceData[0];
+    return {
+      total: items.length,
+      sent,
+      uniqueAudiences,
+      last7,
+      audienceData,
+      dayData,
+      insight: items.length
+        ? `${last7} announcement${last7 === 1 ? "" : "s"} in the last 7 days. Most common target: ${topAudience?.name || "—"}.`
+        : "No announcements yet — send your first one.",
+    };
+  }, [items]);
+
   const addUser = (u: any) => {
     if (selectedUsers.some((s) => s.id === u.id)) return;
     setSelectedUsers((prev) => [
@@ -206,6 +256,64 @@ export function AnnouncementsPage({ role }: { role: UserRole }) {
 
   return (
     <AppShell role={role} pageTitle="Announcements">
+      {(role === "admin" || role === "teacher") && (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+            {[
+              { label: "Total", value: stats.total, icon: Megaphone },
+              { label: "Sent / delivered", value: stats.sent, icon: Send },
+              { label: "Audience types", value: stats.uniqueAudiences, icon: Users },
+              { label: "Last 7 days", value: stats.last7, icon: Sparkles },
+            ].map(({ label, value, icon: Icon }) => (
+              <Card key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+                <div className="w-9 h-9 bg-[#EDE9FE] rounded-xl flex items-center justify-center mb-2">
+                  <Icon className="w-4 h-4 text-[#272757]" />
+                </div>
+                <p className="text-xs text-gray-500 mb-1">{label}</p>
+                <p className="text-2xl font-bold text-[#0F0E47]">{value}</p>
+              </Card>
+            ))}
+          </div>
+
+          <div className="bg-[#EDE9FE]/50 border border-gray-100 rounded-xl px-4 py-3 mb-5 text-sm text-[#272757]">
+            <span className="font-semibold">Insight:</span> {stats.insight}
+          </div>
+
+          {!loading && items.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+              <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                <p className="text-sm font-semibold text-[#0F0E47] mb-3 flex items-center gap-2">
+                  <School className="w-4 h-4" /> By audience
+                </p>
+                <div className="flex justify-center">
+                  <PieChart width={300} height={210}>
+                    <Pie data={stats.audienceData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
+                      {stats.audienceData.map((entry, i) => (
+                        <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Legend />
+                    <Tooltip />
+                  </PieChart>
+                </div>
+              </Card>
+              <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                <p className="text-sm font-semibold text-[#0F0E47] mb-3">Volume over time</p>
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart data={stats.dayData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                    <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#272757" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+            </div>
+          )}
+        </>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
         {canCreate && (
           <Card className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">

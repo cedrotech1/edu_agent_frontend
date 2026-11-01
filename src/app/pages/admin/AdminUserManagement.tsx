@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
@@ -10,11 +10,17 @@ import {
 } from "../../components/ui/select";
 import {
   ArrowLeft, Search, UserPlus, X, Users, BookOpen, Mail,
-  School, CheckCircle, Ban, Eye,
+  School, CheckCircle, Ban, Eye, GraduationCap, ShieldAlert,
 } from "lucide-react";
+import {
+  PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+} from "recharts";
 import { toast } from "sonner";
 import { AppShell } from "../../components/AppShell";
 import { api, ApiError, initials } from "@/lib/api";
+
+const PIE_COLORS = ["#272757", "#505081", "#10B981", "#F59E0B", "#EF4444"];
 
 type UserStatus = "active" | "suspended" | "unverified";
 interface User {
@@ -78,6 +84,49 @@ export function AdminUserManagement() {
     return matchSearch && matchRole;
   });
 
+  const stats = useMemo(() => {
+    const teachers = users.filter((u) => u.role === "teacher").length;
+    const students = users.filter((u) => u.role === "student").length;
+    const admins = users.filter((u) => u.role === "admin").length;
+    const active = users.filter((u) => u.status === "active").length;
+    const suspended = users.filter((u) => u.status === "suspended").length;
+    const unverified = users.filter((u) => u.status === "unverified").length;
+    const roleData = [
+      { name: "Teachers", value: teachers },
+      { name: "Students", value: students },
+      { name: "Admins", value: admins },
+    ].filter((r) => r.value > 0);
+    const statusData = [
+      { name: "Active", value: active },
+      { name: "Unverified", value: unverified },
+      { name: "Suspended", value: suspended },
+    ].filter((r) => r.value > 0);
+    const schoolMap: Record<string, number> = {};
+    for (const u of users) {
+      const school = u.school?.trim() || "Unassigned";
+      schoolMap[school] = (schoolMap[school] || 0) + 1;
+    }
+    const schoolData = Object.entries(schoolMap)
+      .map(([school, count]) => ({ school, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+    const activeRate = users.length ? Math.round((active / users.length) * 100) : 0;
+    return {
+      teachers,
+      students,
+      admins,
+      active,
+      suspended,
+      unverified,
+      roleData,
+      statusData,
+      schoolData,
+      insight: users.length
+        ? `${activeRate}% of accounts are active. Students are ${students}, teachers ${teachers}.`
+        : "No users loaded yet.",
+    };
+  }, [users]);
+
   const toggleStatus = async (id: number) => {
     const u = users.find((x) => x.id === id);
     if (!u) return;
@@ -135,6 +184,72 @@ export function AdminUserManagement() {
           <UserPlus className="w-4 h-4" /> Add User
         </Button>
       </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        {[
+          { label: "Teachers", value: stats.teachers, icon: GraduationCap },
+          { label: "Students", value: stats.students, icon: Users },
+          { label: "Active", value: stats.active, icon: CheckCircle },
+          { label: "Needs attention", value: stats.suspended + stats.unverified, icon: ShieldAlert },
+        ].map(({ label, value, icon: Icon }) => (
+          <Card key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+            <div className="w-9 h-9 bg-[#EDE9FE] rounded-xl flex items-center justify-center mb-2">
+              <Icon className="w-4 h-4 text-[#272757]" />
+            </div>
+            <p className="text-xs text-gray-500 mb-1">{label}</p>
+            <p className="text-2xl font-bold text-[#0F0E47]">{value}</p>
+          </Card>
+        ))}
+      </div>
+
+      <div className="bg-[#EDE9FE]/50 border border-gray-100 rounded-xl px-4 py-3 mb-5 text-sm text-[#272757]">
+        <span className="font-semibold">Insight:</span> {stats.insight}
+      </div>
+
+      {!loading && users.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p className="text-sm font-semibold text-[#0F0E47] mb-3">Roles</p>
+            <div className="flex justify-center">
+              <PieChart width={260} height={200}>
+                <Pie data={stats.roleData} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75}>
+                  {stats.roleData.map((entry, i) => (
+                    <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Legend />
+                <Tooltip />
+              </PieChart>
+            </div>
+          </Card>
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p className="text-sm font-semibold text-[#0F0E47] mb-3">Account status</p>
+            <div className="flex justify-center">
+              <PieChart width={260} height={200}>
+                <Pie data={stats.statusData} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75}>
+                  {stats.statusData.map((entry, i) => (
+                    <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Legend />
+                <Tooltip />
+              </PieChart>
+            </div>
+          </Card>
+          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p className="text-sm font-semibold text-[#0F0E47] mb-3">Top schools</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={stats.schoolData} layout="vertical" margin={{ left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="school" width={90} tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <Bar dataKey="count" fill="#272757" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex gap-4 mb-6">

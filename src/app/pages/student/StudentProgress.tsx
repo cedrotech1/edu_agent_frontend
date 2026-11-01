@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import {
   BarChart3,
   Flame,
-  Lock,
   Loader2,
   Target,
   TrendingUp,
   TrendingDown,
   Minus,
+  Lightbulb,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "../../components/ui/card";
@@ -50,18 +52,21 @@ interface SubjectRow {
   color: string;
 }
 
-interface Achievement {
-  id: number;
-  label: string;
-  emoji: string;
-  desc: string;
-  earned: boolean;
-}
-
 interface ScorePoint {
   date: string;
   score: number;
   subject: string;
+}
+
+interface RecommendationItem {
+  submissionId: number;
+  quizId: number;
+  title: string;
+  subject: string;
+  score: number;
+  date: string;
+  recommendation: string;
+  edited?: boolean;
 }
 
 function TrendTooltip({ active, payload, label }: any) {
@@ -92,6 +97,7 @@ function TrendTooltip({ active, payload, label }: any) {
 }
 
 export function StudentProgress() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
   const [totalQuizzes, setTotalQuizzes] = useState(0);
@@ -99,7 +105,7 @@ export function StudentProgress() {
   const [subjectBreakdown, setSubjectBreakdown] = useState<SubjectRow[]>([]);
   const [trendData, setTrendData] = useState<Record<string, unknown>[]>([]);
   const [scoreHistory, setScoreHistory] = useState<ScorePoint[]>([]);
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
   const [lineSubjects, setLineSubjects] = useState<string[]>([]);
   const [view, setView] = useState<"overall" | "subjects">("overall");
 
@@ -136,7 +142,7 @@ export function StudentProgress() {
           });
         }
         setLineSubjects(Array.from(keys));
-        setAchievements(Array.isArray(d.achievements) ? d.achievements : []);
+        setRecommendations(Array.isArray(d.recommendations) ? d.recommendations : []);
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : "Failed to load progress");
       } finally {
@@ -435,29 +441,56 @@ export function StudentProgress() {
             </div>
           )}
 
-          <h2 className="text-sm font-semibold text-[#0F0E47] mb-4">Achievements</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {achievements.map((a) => (
-              <Card
-                key={a.id}
-                className={`rounded-xl p-4 text-center border transition-all ${
-                  a.earned
-                    ? "bg-white border-gray-100 shadow-sm"
-                    : "bg-gray-50 border-gray-100 opacity-60"
-                }`}
-              >
-                <div className={`text-3xl mb-2 ${a.earned ? "" : "grayscale opacity-40"}`}>{a.emoji}</div>
-                <p className={`text-xs font-bold mb-1 ${a.earned ? "text-[#0F0E47]" : "text-gray-400"}`}>{a.label}</p>
-                <p className="text-[10px] text-gray-400 leading-tight">{a.desc}</p>
-                {!a.earned && (
-                  <div className="flex items-center justify-center gap-1 mt-2 text-gray-400">
-                    <Lock className="w-3 h-3" style={{ strokeWidth: 1.75 }} />
-                    <span className="text-[10px]">Locked</span>
-                  </div>
-                )}
-              </Card>
-            ))}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-[#0F0E47]">Study recommendations</h2>
+            {recommendations.length > 0 && (
+              <span className="text-xs text-gray-400">{recommendations.length} given</span>
+            )}
           </div>
+          {recommendations.length === 0 ? (
+            <Card className="bg-white rounded-xl p-8 text-center mb-2">
+              <Lightbulb className="w-8 h-8 text-[#8686AC] mx-auto mb-3" />
+              <p className="text-sm text-gray-500">No recommendations yet.</p>
+              <p className="text-xs text-gray-400 mt-1">Complete a quiz to get personalized study advice.</p>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {recommendations.map((rec) => (
+                <Card
+                  key={rec.submissionId}
+                  className="bg-white rounded-xl p-5 cursor-pointer hover:bg-gray-50/80 transition-colors"
+                  onClick={() => navigate(`/student/results/${rec.quizId}`)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#EDE9FE] flex items-center justify-center shrink-0">
+                      <Lightbulb className="w-4 h-4 text-[#272757]" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <p className="text-sm font-semibold text-[#0F0E47] truncate">{rec.title}</p>
+                        {rec.subject ? (
+                          <Badge className="rounded-full text-[10px] bg-[#EDE9FE] text-[#272757] border-0">
+                            {rec.subject}
+                          </Badge>
+                        ) : null}
+                        <Badge className="rounded-full text-[10px] bg-emerald-50 text-emerald-700 border-0">
+                          {rec.score}%
+                        </Badge>
+                        {rec.edited ? (
+                          <Badge className="rounded-full text-[10px] bg-amber-50 text-amber-700 border-0">
+                            Teacher updated
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-gray-400 mb-2">{rec.date}</p>
+                      <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{rec.recommendation}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-1" />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </>
       )}
     </AppShell>

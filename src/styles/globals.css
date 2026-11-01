@@ -1,19 +1,43 @@
 /* QuizMind AI — Global Styles (Blue Eclipse) */
 
-/* Dashboard main: flat white cards (no border / shadow) */
+/* Dashboard main: flat white cards (no border / shadow) — never strip form fields */
 .qm-main [data-slot="card"],
-.qm-main .bg-white.rounded-xl,
-.qm-main .bg-white.rounded-2xl,
-.qm-main .bg-white.rounded-lg,
-.qm-main .bg-card.rounded-xl {
+.qm-main div.bg-white.rounded-xl,
+.qm-main div.bg-white.rounded-2xl,
+.qm-main div.bg-white.rounded-lg,
+.qm-main div.bg-card.rounded-xl {
   border-width: 0 !important;
   border-color: transparent !important;
   box-shadow: none !important;
 }
 
+/* All text fields: visible light gray border on white */
+.qm-main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+.qm-main textarea,
+.qm-main select,
+.qm-main [data-slot="select-trigger"],
+input[data-slot="input"],
+textarea[data-slot="textarea"],
+[data-slot="select-trigger"],
+.qm-input {
+  border: 1px solid #F3F4F6 !important; /* gray-100 */
+  background-color: #fff;
+}
+.qm-main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):focus,
+.qm-main textarea:focus,
+.qm-main select:focus,
+.qm-main [data-slot="select-trigger"]:focus,
+.qm-main [data-slot="select-trigger"]:focus-visible,
+input[data-slot="input"]:focus,
+textarea[data-slot="textarea"]:focus,
+[data-slot="select-trigger"]:focus-visible,
+.qm-input:focus {
+  border-color: #272757 !important;
+}
+
 .qm-input {
   height: 44px; padding: 0 14px; border-radius: 10px;
-  border: 1px solid #E2E8F0; font-size: 14px; line-height: 1.5;
+  border: 1px solid #F3F4F6; font-size: 14px; line-height: 1.5;
   outline: none; transition: border-color .15s, box-shadow .15s;
   width: 100%; background: #fff; color: #0F0E47;
   font-family: 'Poppins', sans-serif;

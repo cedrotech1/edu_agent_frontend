@@ -18,9 +18,9 @@
   --accent-foreground: #ffffff;
   --destructive: #EF4444;
   --destructive-foreground: #ffffff;
-  --border: #E2E8F0;
-  --input: transparent;
-  --input-background: #F8FAFC;
+  --border: #F3F4F6;
+  --input: #F3F4F6;
+  --input-background: #ffffff;
   --switch-background: #CBD5E1;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
